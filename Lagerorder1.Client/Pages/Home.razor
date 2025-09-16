@@ -1,7 +1,273 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<div class="hero">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
 
-<h1>Hello, world!</h1>
+    <div class="hero-inner">
+        <h1><span class="logo">📦</span> Lagerorder1</h1>
+        <p class="tagline">
+            Snabb produktöversikt & smidig orderhantering – stilrent och enkelt.
+        </p>
 
-Welcome to your new app.
+        <div class="cta">
+            <NavLink class="btn btn-primary" href="/produkt" aria-label="Visa produkter">Visa produkter</NavLink>
+            <NavLink class="btn btn-ghost" href="/order" aria-label="Hantera ordrar">Hantera ordrar</NavLink>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="value">4</div>
+                <div class="label">Kategorier</div>
+            </div>
+            <div class="stat">
+                <div class="value">+100</div>
+                <div class="label">Artiklar</div>
+            </div>
+            <div class="stat">
+                <div class="value">~2 min</div>
+                <div class="label">per order</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="features">
+    <div class="feature-card">
+        <div class="icon">🎯</div>
+        <h3>Fokuserat</h3>
+        <p>Allt du behöver – inga distraktioner. Snabbt att hitta rätt.</p>
+        <NavLink class="link" href="/produkt">Till produkter →</NavLink>
+    </div>
+
+    <div class="feature-card">
+        <div class="icon">🧾</div>
+        <h3>Orderflöde</h3>
+        <p>Skapa, redigera och spåra status. Tydligt och effektivt.</p>
+        <NavLink class="link" href="/order">Till ordrar →</NavLink>
+    </div>
+
+    <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>Snabb känsla</h3>
+        <p>Lättvikt utan backend-krav. Perfekt för demo och inlämning.</p>
+    </div>
+</section>
+
+<style>
+    :root {
+        /* Färgtema – tweaka fritt */
+        --bg1: #0b1220; /* djup blåsvart */
+        --bg2: #131a2e; /* mörk skiffer */
+        --accent: #7c3aed; /* violett */
+        --accent-2: #22d3ee; /* cyan */
+        --glass: #0b1220cc; /* semi-transparent för glass */
+        --card: #ffffff;
+        --muted: rgba(255,255,255,.72);
+        --ring: 0 0 0 3px rgba(124,58,237,.25);
+        --shadow: 0 20px 40px rgba(0,0,0,.35);
+        --shadow-soft: 0 12px 28px rgba(10, 14, 28, .20);
+    }
+
+    .hero {
+        position: relative;
+        border-radius: 1.25rem;
+        margin: .75rem;
+        overflow: hidden;
+        background: radial-gradient(1200px 600px at 10% -10%, rgba(34,211,238,.15), transparent 60%), radial-gradient(900px 500px at 90% 0%, rgba(124,58,237,.22), transparent 60%), linear-gradient(180deg, var(--bg1), var(--bg2));
+        color: #fff;
+        box-shadow: var(--shadow);
+        isolation: isolate;
+    }
+
+    .glow {
+        position: absolute;
+        inset: auto;
+        filter: blur(60px);
+        opacity: .55;
+        pointer-events: none;
+        transform: translateZ(0);
+    }
+
+    .glow-a {
+        width: 280px;
+        height: 280px;
+        left: -60px;
+        top: -60px;
+        background: radial-gradient(circle at 30% 30%, var(--accent-2), transparent 60%);
+    }
+
+    .glow-b {
+        width: 320px;
+        height: 320px;
+        right: -80px;
+        top: -40px;
+        background: radial-gradient(circle at 70% 30%, var(--accent), transparent 60%);
+    }
+
+    .hero-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 3.2rem 1.25rem 2.6rem;
+        text-align: center;
+        position: relative;
+    }
+
+    .hero h1 {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        margin: 0 0 .6rem;
+        letter-spacing: .2px;
+    }
+
+    .logo {
+        filter: drop-shadow(0 6px 18px rgba(34,211,238,.35));
+    }
+
+    .tagline {
+        color: var(--muted);
+        margin: 0 auto 1.35rem;
+        max-width: 760px;
+    }
+
+    .cta {
+        display: flex;
+        gap: .7rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 1rem 0 1.4rem;
+    }
+
+    .btn {
+        padding: .7rem 1.05rem;
+        border-radius: .9rem;
+        text-decoration: none;
+        display: inline-block;
+        border: 1px solid transparent;
+        transition: transform .12s ease, box-shadow .12s ease, background .2s ease, border-color .2s ease, color .2s ease;
+        will-change: transform;
+    }
+
+        .btn:focus {
+            outline: none;
+            box-shadow: var(--ring);
+        }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent), #5b21b6);
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(124,58,237,.32);
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+    .btn-ghost {
+        background: rgba(255,255,255,.08);
+        color: #fff;
+        border-color: rgba(255,255,255,.28);
+        backdrop-filter: blur(8px);
+    }
+
+        .btn-ghost:hover {
+            background: rgba(255,255,255,.14);
+            transform: translateY(-2px);
+        }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0,1fr));
+        gap: .8rem;
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    .stat {
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: .9rem;
+        padding: .85rem .9rem;
+        backdrop-filter: blur(10px);
+    }
+
+        .stat .value {
+            font-weight: 800;
+            font-size: 1.55rem;
+        }
+
+        .stat .label {
+            color: var(--muted);
+            font-size: .92rem
+        }
+
+    .features {
+        max-width: 1100px;
+        margin: 1.4rem auto;
+        padding: 0 1.25rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+        gap: 1rem;
+    }
+
+    .feature-card {
+        background: var(--card);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 1rem;
+        padding: 1.05rem;
+        box-shadow: var(--shadow-soft);
+        transition: transform .12s ease, box-shadow .12s ease, border-color .2s ease;
+    }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 36px rgba(18,18,28,.16);
+            border-color: rgba(124,58,237,.25);
+        }
+
+        .feature-card .icon {
+            font-size: 1.5rem
+        }
+
+        .feature-card h3 {
+            margin: .45rem 0 .25rem
+        }
+
+        .feature-card p {
+            color: #4b5563;
+            margin: 0 0 .55rem
+        }
+
+        .feature-card .link {
+            text-decoration: none;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+            .feature-card .link:hover {
+                text-decoration: underline;
+            }
+
+   
+    @@media (max-width: 760px) {
+        .hero-inner
+
+    {
+        padding: 2.4rem 1rem 2rem;
+    }
+
+    .stats {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .stats {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+

@@ -4,26 +4,14 @@
 
 <h1>Produkter</h1>
 
-<div class="toolbar">
-    <div class="cats">
-        @foreach (var c in Categories)
-        {
-            <button class="chip @(category == c ? "active" : null)" @onclick="(() => SetCategory(c))">@ToTitle(c)</button>
-        }
-    </div>
-    <div class="cart">
-        <span class="cart-pill" title="Varukorg">🛒 @cartCount</span>
-    </div>
-</div>
-
-@if (VisibleProducts.Count == 0)
+@if (products.Count == 0)
 {
-    <p>Inga produkter i denna kategori.</p>
+    <p>Inga produkter än.</p>
 }
 else
 {
     <div class="list">
-        @foreach (var p in VisibleProducts)
+        @foreach (var p in products)
         {
             <div class="card">
                 <div class="card-head">
@@ -40,6 +28,7 @@ else
                         var qty = GetStock(p, s);
                         var isDisabled = qty == 0;
                         var isActive = GetSelectedSize(p) == s;
+
                         <button class="size-pill @(isActive ? "active" : null) @(isDisabled ? "disabled" : null)"
                                 disabled="@isDisabled"
                                 title="@(isDisabled ? "Slut i lager" : $"{qty} i lager")"
@@ -60,62 +49,15 @@ else
                     <span class="stock-pill @cls"><span class="dot"></span>@txt</span>
                     <span class="total">Totalt: <strong>@p.StockBySize.Values.Sum() st</strong></span>
                 </div>
-
-                <div class="actions">
-                    <button class="btn btn-primary" disabled="@(GetStock(p, GetSelectedSize(p)) == 0)" @onclick="(() => AddToCart(p))">Lägg i kundvagn</button>
-                </div>
             </div>
         }
     </div>
-}
-
-@if (!string.IsNullOrEmpty(lastAddedText))
-{
-    <div class="toast">@lastAddedText</div>
 }
 
 <style>
     h1 {
         font-weight: 700;
         margin: .5rem 0 1rem
-    }
-
-    .toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: .75rem;
-        gap: .5rem;
-        flex-wrap: wrap
-    }
-
-    .cats {
-        display: flex;
-        gap: .5rem;
-        flex-wrap: wrap
-    }
-
-    .chip {
-        padding: .35rem .7rem;
-        border: 1px solid rgba(0,0,0,.12);
-        border-radius: 999px;
-        background: #fff;
-        cursor: pointer
-    }
-
-        .chip.active {
-            background: #111;
-            color: #fff;
-            border-color: #111
-        }
-
-    .cart-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        padding: .2rem .6rem;
-        border: 1px solid rgba(0,0,0,.18);
-        border-radius: 999px
     }
 
     .list {
@@ -228,86 +170,31 @@ else
     .stock-zero {
         --stock-color: #b00020
     }
-
-    .actions {
-        margin-top: .6rem
-    }
-
-    .btn {
-        padding: .4rem .8rem;
-        border-radius: .5rem;
-        border: 1px solid rgba(0,0,0,.18);
-        background: #111;
-        color: #fff;
-        cursor: pointer
-    }
-
-        .btn[disabled] {
-            opacity: .6;
-            cursor: not-allowed
-        }
-
-    .toast {
-        position: fixed;
-        right: 1rem;
-        bottom: 1rem;
-        background: #111;
-        color: #fff;
-        padding: .6rem .9rem;
-        border-radius: .6rem;
-        box-shadow: 0 8px 24px rgba(0,0,0,.2)
-    }
 </style>
 
 @code {
     private readonly CultureInfo sv = CultureInfo.GetCultureInfo("sv-SE");
     private static readonly string[] Sizes = new[] { "XS", "S", "M", "L", "XL" };
-    private static readonly string[] Categories = new[] { "alla", "jacka", "tshirt", "keps", "byxor" };
-
-    private string category = "alla";
-    private int cartCount = 0;
-    private string? lastAddedText;
 
     private List<Product> products = new();
-    private Dictionary<string, string> selectedSize = new(); // productId -> size
+    private Dictionary<string, string> selectedSize = new(); 
 
     protected override void OnInitialized()
     {
         products = new()
         {
-            new Product
-            {
-                Id = "1", Name = "Vindjacka Svart", Category = "jacka", Price = 599m,
-                StockBySize = new() { ["XS"]=2, ["S"]=3, ["M"]=4, ["L"]=2, ["XL"]=1 }
-            },
-            new Product
-            {
-                Id = "2", Name = "Basic Tee Vit", Category = "tshirt", Price = 149m,
-                StockBySize = new() { ["XS"]=10, ["S"]=12, ["M"]=15, ["L"]=9, ["XL"]=5 }
-            },
-            new Product
-            {
-                Id = "3", Name = "Trucker Keps", Category = "keps", Price = 129m,
-                StockBySize = new() { ["XS"]=0, ["S"]=0, ["M"]=20, ["L"]=0, ["XL"]=0 }
-            },
-            new Product
-            {
-                Id = "4", Name = "Cargo Byxa", Category = "byxor", Price = 399m,
-                StockBySize = new() { ["XS"]=3, ["S"]=5, ["M"]=6, ["L"]=4, ["XL"]=2 }
-            }
+            new Product { Id="1", Name="Vindjacka Svart", Category="jacka", Price=599m,
+                StockBySize = new() { ["XS"]=2, ["S"]=3, ["M"]=4, ["L"]=2, ["XL"]=1 } },
+            new Product { Id="2", Name="Basic Tee Vit", Category="tshirt", Price=149m,
+                StockBySize = new() { ["XS"]=10, ["S"]=12, ["M"]=15, ["L"]=9, ["XL"]=5 } },
+            new Product { Id="3", Name="Trucker Keps", Category="keps", Price=129m,
+                StockBySize = new() { ["XS"]=0, ["S"]=0, ["M"]=20, ["L"]=0, ["XL"]=0 } },
+            new Product { Id="4", Name="Cargo Byxa", Category="byxor", Price=399m,
+                StockBySize = new() { ["XS"]=3, ["S"]=5, ["M"]=6, ["L"]=4, ["XL"]=2 } }
         };
 
         foreach (var p in products)
-            selectedSize[p.Id] = FirstAvailableSize(p) ?? "M"; // välj första storlek med lager
-    }
-
-    private List<Product> VisibleProducts => products
-        .Where(p => category == "alla" || p.Category == category)
-        .ToList();
-
-    private void SetCategory(string c)
-    {
-        category = c;
+            selectedSize[p.Id] = FirstAvailableSize(p) ?? "M"; 
     }
 
     private string? FirstAvailableSize(Product p)
@@ -317,40 +204,20 @@ else
         return null;
     }
 
-    private string GetSelectedSize(Product p) => selectedSize.TryGetValue(p.Id, out var s) ? s : (FirstAvailableSize(p) ?? "M");
+    private string GetSelectedSize(Product p) =>
+        selectedSize.TryGetValue(p.Id, out var s) ? s : (FirstAvailableSize(p) ?? "M");
 
     private void SelectSize(Product p, string s)
     {
-        if (GetStock(p, s) <= 0) return; // säkerhet
+        if (GetStock(p, s) <= 0) return; 
         selectedSize[p.Id] = s;
     }
 
-    private int GetStock(Product p, string size) => p.StockBySize.TryGetValue(size, out var v) ? v : 0;
-
-    private void AddToCart(Product p)
-    {
-        var s = GetSelectedSize(p);
-        var current = GetStock(p, s);
-        if (current <= 0) return;
-
-        // Minska lager för vald storlek och öka cart
-        p.StockBySize[s] = current - 1;
-        cartCount++;
-
-        lastAddedText = $"Tillagd: {p.Name} ({s})";
-        _ = DismissToastSoon();
-    }
-
-    private async Task DismissToastSoon()
-    {
-        var captured = lastAddedText;
-        await Task.Delay(2000);
-        if (lastAddedText == captured) { lastAddedText = null; StateHasChanged(); }
-    }
+    private int GetStock(Product p, string size) =>
+        p.StockBySize.TryGetValue(size, out var v) ? v : 0;
 
     private static string ToTitle(string c) => c switch
     {
-        "alla" => "Alla",
         "jacka" => "Jacka",
         "tshirt" => "T-shirt",
         "keps" => "Keps",
@@ -362,7 +229,7 @@ else
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty; // jacka|tshirt|keps|byxor
+        public string Category { get; set; } = string.Empty; 
         public decimal Price { get; set; }
         public Dictionary<string, int> StockBySize { get; set; } = new();
     }

@@ -4,14 +4,29 @@
 
 <h1>Produkter</h1>
 
-@if (products.Count == 0)
+<div class="toolbar">
+    <div class="cats">
+        @foreach (var c in Categories)
+        {
+            <button class="chip @(category == c ? "active" : null)"
+                    @onclick="(() => SetCategory(c))">
+                @ToTitle(c)
+            </button>
+        }
+    </div>
+
+    <input class="search" placeholder="Sök produktnamn…"
+           @bind="search" @bind:event="oninput" />
+</div>
+
+@if (!VisibleProducts.Any())
 {
-    <p>Inga produkter än.</p>
+    <p>Inga produkter hittades.</p>
 }
 else
 {
     <div class="list">
-        @foreach (var p in products)
+        @foreach (var p in VisibleProducts)
         {
             <div class="card">
                 <div class="card-head">
@@ -58,6 +73,42 @@ else
     h1 {
         font-weight: 700;
         margin: .5rem 0 1rem
+    }
+
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .75rem;
+        margin: .5rem 0 1rem;
+        flex-wrap: wrap
+    }
+
+    .cats {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap
+    }
+
+    .chip {
+        padding: .35rem .7rem;
+        border: 1px solid rgba(0,0,0,.12);
+        border-radius: 999px;
+        background: #fff;
+        cursor: pointer
+    }
+
+        .chip.active {
+            background: #111;
+            color: #fff;
+            border-color: #111
+        }
+
+    .search {
+        padding: .4rem .6rem;
+        border: 1px solid rgba(0,0,0,.18);
+        border-radius: .5rem;
+        min-width: 220px
     }
 
     .list {
@@ -173,14 +224,24 @@ else
 </style>
 
 @code {
+    // Kultur för SEK-format
     private readonly CultureInfo sv = CultureInfo.GetCultureInfo("sv-SE");
+
+    // Kategorier & storlekar
+    private static readonly string[] Categories = new[] { "alla", "jacka", "tshirt", "keps", "byxor" };
     private static readonly string[] Sizes = new[] { "XS", "S", "M", "L", "XL" };
 
+    // Filter-state
+    private string category = "alla";
+    private string? search;
+
+    // Data + valt storleksminne
     private List<Product> products = new();
-    private Dictionary<string, string> selectedSize = new(); 
+    private Dictionary<string, string> selectedSize = new(); // productId -> size
 
     protected override void OnInitialized()
     {
+        // Demo-data
         products = new()
         {
             new Product { Id="1", Name="Vindjacka Svart", Category="jacka", Price=599m,
@@ -194,8 +255,18 @@ else
         };
 
         foreach (var p in products)
-            selectedSize[p.Id] = FirstAvailableSize(p) ?? "M"; 
+            selectedSize[p.Id] = FirstAvailableSize(p) ?? "M";
     }
+
+    // Synlig lista (kategori + sök)
+    private List<Product> VisibleProducts =>
+        products
+            .Where(p => category == "alla" || p.Category == category)
+            .Where(p => string.IsNullOrWhiteSpace(search) ||
+                        (p.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToList();
+
+    private void SetCategory(string c) => category = c;
 
     private string? FirstAvailableSize(Product p)
     {
@@ -209,7 +280,7 @@ else
 
     private void SelectSize(Product p, string s)
     {
-        if (GetStock(p, s) <= 0) return; 
+        if (GetStock(p, s) <= 0) return; // säkerhet
         selectedSize[p.Id] = s;
     }
 
@@ -218,6 +289,7 @@ else
 
     private static string ToTitle(string c) => c switch
     {
+        "alla" => "Alla",
         "jacka" => "Jacka",
         "tshirt" => "T-shirt",
         "keps" => "Keps",
@@ -229,7 +301,7 @@ else
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty; 
+        public string Category { get; set; } = string.Empty; // jacka|tshirt|keps|byxor
         public decimal Price { get; set; }
         public Dictionary<string, int> StockBySize { get; set; } = new();
     }

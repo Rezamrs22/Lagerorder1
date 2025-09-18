@@ -1,195 +1,192 @@
 ﻿@page "/order"
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Components.Forms
 
-<h1 class="page-title">Orders</h1>
+<h3>Skapa order</h3>
 
-<div class="toolbar d-flex align-items-center gap-2 mb-3">
-    <input class="form-control search-input" placeholder="Search (id, customer)…" @bind="search" />
-    <button class="btn btn-primary" @onclick="OpenCreate"><span class="me-1">+</span>Create order</button>
-</div>
-
-<div class="order-grid">
-    @if (FilteredOrders.Count == 0)
-    {
-        <div class="empty">
-            <p>No orders yet. Click <strong>Create order</strong> to add one.</p>
+<EditForm Model="form" OnValidSubmit="Create">
+    <DataAnnotationsValidator />
+    <div class="form">
+        <div class="field">
+            <label for="cust">Kund</label>
+            <InputText id="cust" class="input" @bind-Value="form.Customer" />
+            <ValidationMessage For="() => form.Customer" />
         </div>
-    }
-    else
-    {
-        @foreach (var o in FilteredOrders)
+
+        <div class="field">
+            <label for="art">Artikel</label>
+            <InputSelect id="art" class="input" @bind-Value="form.ArticleNo">
+                <option value="">-- Välj produkt --</option>
+                @foreach (var p in Products)
+                {
+                    <option value="@p.Code">@p.Name</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => form.ArticleNo" />
+        </div>
+
+        <div class="field small">
+            <label for="qty">Antal</label>
+            <InputNumber id="qty" class="input" @bind-Value="form.Quantity" />
+            <ValidationMessage For="() => form.Quantity" />
+        </div>
+
+        <button type="submit" class="btn">Skapa</button>
+    </div>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(info))
+{
+    <p class="notice">@info</p>
+}
+
+@if (orders.Count > 0)
+{
+    <h4>Senaste ordrar</h4>
+    <ul class="list">
+        @foreach (var o in orders.OrderByDescending(x => x.CreatedAt).Take(5))
         {
-            <div class="order-card shadow-sm">
-                <div class="order-card-header d-flex justify-content-between align-items-center">
-                    <strong>#@o.Id</strong>
-                    <button class="btn btn-sm btn-outline-danger" title="Delete" @onclick="(() => ConfirmDelete(o))">Delete</button>
-                </div>
-                <div class="order-card-body">
-                    <div><span class="label">Customer:</span> @o.Customer</div>
-                    <div><span class="label">Qty:</span> @o.Quantity</div>
-                    <div><span class="label">Price:</span> @o.Price.ToString("C")</div>
-                    <div><span class="label">Total:</span> @(o.Quantity* o.Price).ToString("C")</div>
-                </div>
-            </div>
+            <li>
+                <span class="muted">#@o.Id</span>
+                — @o.Customer, @GetProductName(o.ArticleNo) (@o.ArticleNo), @o.Quantity st
+                — <span class="muted">@o.CreatedAt:yyyy-MM-dd HH:mm</span>
+            </li>
         }
-    }
-</div>
-
-@* Create modal *@
-@if (showCreate)
-{
-    <div class="modal-backdrop" @onclick="CloseCreate"></div>
-    <div class="modal-panel">
-        <h5 class="mb-3">Create order</h5>
-        <EditForm Model="newOrder" OnValidSubmit="Create">
-            <DataAnnotationsValidator />
-            <div class="mb-3">
-                <label class="form-label">Order ID (optional)</label>
-                <InputText class="form-control" @bind-Value="newOrder.Id" />
-                <div class="form-text">Leave empty to auto-generate.</div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Customer</label>
-                <InputText class="form-control" @bind-Value="newOrder.Customer" />
-                <ValidationMessage For="() => newOrder.Customer" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Quantity</label>
-                <InputNumber class="form-control" @bind-Value="newOrder.Quantity" />
-                <ValidationMessage For="() => newOrder.Quantity" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Price</label>
-                <InputNumber class="form-control" @bind-Value="newOrder.Price" />
-                <ValidationMessage For="() => newOrder.Price" />
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="CloseCreate">Cancel</button>
-                <button type="submit" class="btn btn-success">Save</button>
-            </div>
-        </EditForm>
-    </div>
+    </ul>
 }
-
-@* Delete confirm modal *@
-@if (orderToDelete is not null)
+else
 {
-    <div class="modal-backdrop"></div>
-    <div class="modal-panel">
-        <h6 class="mb-3">Delete order #@orderToDelete.Id?</h6>
-        <p class="text-secondary">This action cannot be undone.</p>
-        <div class="d-flex justify-content-end gap-2">
-            <button class="btn btn-secondary" @onclick="(() => orderToDelete = null)">Cancel</button>
-            <button class="btn btn-danger" @onclick="DeleteConfirmed">Delete</button>
-        </div>
-    </div>
+    <p class="muted">Inga ordrar ännu.</p>
 }
-
-<style>
-    .page-title { font-weight: 700; margin: .5rem 0 1rem; }
-    .toolbar .search-input { max-width: 360px; }
-
-    .order-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-    .order-card { background: var(--bs-body-bg); border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; overflow: hidden; }
-    .order-card-header { padding: .5rem .75rem; border-bottom: 1px solid rgba(0,0,0,.06); background: rgba(0,0,0,.02); }
-    .order-card-body { padding: .75rem; }
-    .order-card .label { color: var(--bs-secondary-color); width: 90px; display: inline-block; }
-
-    .empty { padding: 2rem; text-align: center; color: var(--bs-secondary-color); border: 1px dashed rgba(0,0,0,.15); border-radius: .75rem; }
-
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1050; }
-    .modal-panel { position: fixed; left: 50%; top: 10%; transform: translateX(-50%); width: min(520px, 92vw); background: var(--bs-body-bg); border-radius: .75rem; border: 1px solid rgba(0,0,0,.12); padding: 1rem; z-index: 1060; box-shadow: 0 .75rem 2rem rgba(0,0,0,.2); }
-</style>
 
 @code {
-    private string? search;
-    private List<Order> orders = new();
-    private bool showCreate = false;
-    private OrderInput newOrder = new();
-    private Order? orderToDelete;
-
-    protected override void OnInitialized()
+    // "Katalog" för dropdown – enkel lista
+    private static readonly ProductOption[] Products = new[]
     {
-        // Example seed data
-        orders = new List<Order>
-        {
-            new Order { Id = "1001", Customer = "Alice", Quantity = 2, Price = 199.00m },
-            new Order { Id = "1002", Customer = "Bob", Quantity = 1, Price = 999.00m }
-        };
-    }
+        new ProductOption("JACKA-01", "Jacka"),
+        new ProductOption("TSHIRT-01", "T-shirt"),
+        new ProductOption("KEPS-01", "Keps"),
+        new ProductOption("BYXA-01", "Byxa"),
+    };
 
-    private List<Order> FilteredOrders => string.IsNullOrWhiteSpace(search)
-        ? orders
-        : orders.Where(o => (o.Id?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                         || (o.Customer?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
-                .ToList();
+    // Formmodell
+    private OrderForm form = new() { Quantity = 1 };
+    private string? info;
 
-    private void OpenCreate()
-    {
-        newOrder = new OrderInput();
-        showCreate = true;
-    }
-
-    private void CloseCreate() => showCreate = false;
+    // In-memory ordrar
+    private readonly List<Order> orders = new();
 
     private void Create()
     {
-        // Auto-generate id if empty
-        var id = string.IsNullOrWhiteSpace(newOrder.Id) ? GenerateId() : newOrder.Id!.Trim();
-
-        // Very simple duplicate check
-        if (orders.Any(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)))
-        {
-            id = GenerateId();
-        }
-
+        var id = DateTime.Now.ToString("yyyyMMddHHmmss"); // enkel "unik" ID
         orders.Add(new Order
         {
             Id = id,
-            Customer = newOrder.Customer!,
-            Quantity = newOrder.Quantity,
-            Price = newOrder.Price
+            Customer = form.Customer!.Trim(),
+            ArticleNo = form.ArticleNo!, // redan vald i dropdown
+            Quantity = form.Quantity,
+            CreatedAt = DateTime.Now
         });
 
-        showCreate = false;
-        StateHasChanged();
+        info = $"Order #{id} skapades.";
+        form = new OrderForm { Quantity = 1 }; // nollställ
     }
 
-    private string GenerateId() => DateTime.Now.ToString("yyyyMMddHHmmss");
+    private string GetProductName(string code) =>
+        Products.FirstOrDefault(p => p.Code == code)?.Name ?? code;
 
-    private void ConfirmDelete(Order o) => orderToDelete = o;
-
-    private void DeleteConfirmed()
-    {
-        if (orderToDelete is not null)
-        {
-            orders.Remove(orderToDelete);
-            orderToDelete = null;
-            StateHasChanged();
-        }
-    }
-
+    // Modeller
     private class Order
     {
-        public string? Id { get; set; }
-        public string? Customer { get; set; }
+        public string Id { get; set; } = "";
+        public string Customer { get; set; } = "";
+        public string ArticleNo { get; set; } = "";
         public int Quantity { get; set; }
-        public decimal Price { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 
-    private class OrderInput
+    private class OrderForm
     {
-        [StringLength(32, ErrorMessage = "Max 32 chars.")]
-        public string? Id { get; set; }
-
-        [Required, StringLength(60)]
+        [Required(ErrorMessage = "Ange kund.")]
+        [StringLength(60)]
         public string? Customer { get; set; }
 
-        [Range(1, 1000000)]
-        public int Quantity { get; set; } = 1;
+        [Required(ErrorMessage = "Välj en produkt.")]
+        public string? ArticleNo { get; set; } = "";
 
-        [Range(typeof(decimal), "0.01", "1000000", ErrorMessage = "Price must be > 0")]
-        public decimal Price { get; set; } = 1m;
+        [Range(1, 100000, ErrorMessage = "Antal måste vara minst 1.")]
+        public int Quantity { get; set; } = 1;
     }
+
+    private record ProductOption(string Code, string Name);
 }
+
+<style>
+    h3 {
+        margin: .25rem 0 1rem;
+    }
+
+    .form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: .6rem;
+        align-items: end;
+        max-width: 720px
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem
+    }
+
+        .field.small {
+            max-width: 140px
+        }
+
+    .input {
+        padding: .45rem .55rem;
+        border: 1px solid #d1d5db;
+        border-radius: .4rem;
+    }
+
+    .btn {
+        padding: .45rem .9rem;
+        border: 1px solid #111;
+        border-radius: .4rem;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .notice {
+        margin: .75rem 0;
+        padding: .5rem .7rem;
+        border: 1px solid #16a34a;
+        background: #f0fdf4;
+        color: #166534;
+        border-radius: .4rem;
+    }
+
+    .list {
+        margin: .25rem 0 0;
+        padding-left: 1rem;
+    }
+
+        .list li {
+            margin: .2rem 0;
+        }
+
+    .muted {
+        color: #6b7280;
+    }
+
+    @@media (max-width:720px) {
+        .form {
+            grid-template-columns: 1fr;
+        }
+
+        .field.small {
+            max-width: none
+        }
+    }
+</style>

@@ -1,0 +1,192 @@
+﻿@page "/order"
+@using System.ComponentModel.DataAnnotations
+
+<h3>Skapa order</h3>
+
+<EditForm Model="form" OnValidSubmit="Create">
+    <DataAnnotationsValidator />
+    <div class="form">
+        <div class="field">
+            <label for="cust">Kund</label>
+            <InputText id="cust" class="input" @bind-Value="form.Customer" />
+            <ValidationMessage For="() => form.Customer" />
+        </div>
+
+        <div class="field">
+            <label for="art">Artikel</label>
+            <InputSelect id="art" class="input" @bind-Value="form.ArticleNo">
+                <option value="">-- Välj produkt --</option>
+                @foreach (var p in Products)
+                {
+                    <option value="@p.Code">@p.Name</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => form.ArticleNo" />
+        </div>
+
+        <div class="field small">
+            <label for="qty">Antal</label>
+            <InputNumber id="qty" class="input" @bind-Value="form.Quantity" />
+            <ValidationMessage For="() => form.Quantity" />
+        </div>
+
+        <button type="submit" class="btn">Skapa</button>
+    </div>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(info))
+{
+    <p class="notice">@info</p>
+}
+
+@if (orders.Count > 0)
+{
+    <h4>Senaste ordrar</h4>
+    <ul class="list">
+        @foreach (var o in orders.OrderByDescending(x => x.CreatedAt).Take(5))
+        {
+            <li>
+                <span class="muted">#@o.Id</span>
+                — @o.Customer, @GetProductName(o.ArticleNo) (@o.ArticleNo), @o.Quantity st
+                — <span class="muted">@o.CreatedAt:yyyy-MM-dd HH:mm</span>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p class="muted">Inga ordrar ännu.</p>
+}
+
+@code {
+    // "Katalog" för dropdown – enkel lista
+    private static readonly ProductOption[] Products = new[]
+    {
+        new ProductOption("JACKA-01", "Jacka"),
+        new ProductOption("TSHIRT-01", "T-shirt"),
+        new ProductOption("KEPS-01", "Keps"),
+        new ProductOption("BYXA-01", "Byxa"),
+    };
+
+    // Formmodell
+    private OrderForm form = new() { Quantity = 1 };
+    private string? info;
+
+    // In-memory ordrar
+    private readonly List<Order> orders = new();
+
+    private void Create()
+    {
+        var id = DateTime.Now.ToString("yyyyMMddHHmmss"); // enkel "unik" ID
+        orders.Add(new Order
+        {
+            Id = id,
+            Customer = form.Customer!.Trim(),
+            ArticleNo = form.ArticleNo!, // redan vald i dropdown
+            Quantity = form.Quantity,
+            CreatedAt = DateTime.Now
+        });
+
+        info = $"Order #{id} skapades.";
+        form = new OrderForm { Quantity = 1 }; // nollställ
+    }
+
+    private string GetProductName(string code) =>
+        Products.FirstOrDefault(p => p.Code == code)?.Name ?? code;
+
+    // Modeller
+    private class Order
+    {
+        public string Id { get; set; } = "";
+        public string Customer { get; set; } = "";
+        public string ArticleNo { get; set; } = "";
+        public int Quantity { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
+
+    private class OrderForm
+    {
+        [Required(ErrorMessage = "Ange kund.")]
+        [StringLength(60)]
+        public string? Customer { get; set; }
+
+        [Required(ErrorMessage = "Välj en produkt.")]
+        public string? ArticleNo { get; set; } = "";
+
+        [Range(1, 100000, ErrorMessage = "Antal måste vara minst 1.")]
+        public int Quantity { get; set; } = 1;
+    }
+
+    private record ProductOption(string Code, string Name);
+}
+
+<style>
+    h3 {
+        margin: .25rem 0 1rem;
+    }
+
+    .form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: .6rem;
+        align-items: end;
+        max-width: 720px
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem
+    }
+
+        .field.small {
+            max-width: 140px
+        }
+
+    .input {
+        padding: .45rem .55rem;
+        border: 1px solid #d1d5db;
+        border-radius: .4rem;
+    }
+
+    .btn {
+        padding: .45rem .9rem;
+        border: 1px solid #111;
+        border-radius: .4rem;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .notice {
+        margin: .75rem 0;
+        padding: .5rem .7rem;
+        border: 1px solid #16a34a;
+        background: #f0fdf4;
+        color: #166534;
+        border-radius: .4rem;
+    }
+
+    .list {
+        margin: .25rem 0 0;
+        padding-left: 1rem;
+    }
+
+        .list li {
+            margin: .2rem 0;
+        }
+
+    .muted {
+        color: #6b7280;
+    }
+
+    @@media (max-width:720px) {
+        .form {
+            grid-template-columns: 1fr;
+        }
+
+        .field.small {
+            max-width: none
+        }
+    }
+</style>

@@ -5,40 +5,21 @@
         </NavLink>
     </div>
 
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="order">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Order
-            </NavLink>
-        </div>
-
-
     <div class="nav-item px-3">
         <NavLink class="nav-link" href="/order">
-            <span class="bi bi-clipboard-data-fill nav-menu" aria-hidden="true"></span> Order
+            <span class="bi bi-bag-check-fill nav-menu" aria-hidden="true"></span> Order
         </NavLink>
     </div>
 
     <div class="nav-item px-3">
         <NavLink class="nav-link" href="/produkt">
-            <span class="bi bi-list-nested nav-menu" aria-hidden="true"></span> Produkt
+            <span class="bi bi-box-seam nav-menu" aria-hidden="true"></span> Produkt
         </NavLink>
     </div>
 
     <div class="nav-item px-3">
         <NavLink class="nav-link" href="/auth">
-            <span class="bi bi-shield-lock-fill nav-menu" aria-hidden="true"></span> Auth Required
+            <span class="bi bi-lock nav-menu" aria-hidden="true"></span> Auth Required
         </NavLink>
     </div>
 
@@ -56,6 +37,12 @@
 </nav>
 
 <style>
-    .nav-menu{ margin-right:.5rem }
-    .nav-link.active{ font-weight:600 }
+    .nav-menu {
+        margin-right: .5rem
+    }
+
+    .nav-link.active {
+        font-weight: 600
+    }
 </style>
+

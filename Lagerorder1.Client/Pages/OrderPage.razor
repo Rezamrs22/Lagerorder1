@@ -1,192 +1,156 @@
-﻿@page "/order"
-@using System.ComponentModel.DataAnnotations
+﻿@page "/orders"
 
-<h3>Skapa order</h3>
+@using System.Net.Http.Json
+@using Lagerorder1.Shared.DTOs
+@inject HttpClient Http  // API: HttpClient måste ha korrekt BaseAddress (https://localhost:xxxx/)
 
-<EditForm Model="form" OnValidSubmit="Create">
-    <DataAnnotationsValidator />
-    <div class="form">
-        <div class="field">
-            <label for="cust">Kund</label>
-            <InputText id="cust" class="input" @bind-Value="form.Customer" />
-            <ValidationMessage For="() => form.Customer" />
-        </div>
+<h3>Produkter</h3>
 
-        <div class="field">
-            <label for="art">Artikel</label>
-            <InputSelect id="art" class="input" @bind-Value="form.ArticleNo">
-                <option value="">-- Välj produkt --</option>
-                @foreach (var p in Products)
+@if (isLoading)
+{
+    <div class="alert alert-info">Laddar produkter…</div>
+}
+@if (!string.IsNullOrWhiteSpace(loadError))
+{
+    <div class="alert alert-danger">@loadError</div>
+}
+
+@if (products?.Count > 0)
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Namn</th>
+                    <th>Beskrivning</th>
+                    <th class="text-end">Pris</th>
+                    <th class="text-end">Lager</th>
+                    <th class="text-end">Sålda</th>
+                    <th>Kategori</th>   @* visar CategoryName, inte CategoryId *@
+                    <th>Storlek</th>    @* visar SizeName, inte SizeId *@
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in products)
                 {
-                    <option value="@p.Code">@p.Name</option>
+                    var alreadyAdded = selected.Any(s => s.ProductId == p.ProductId);
+                    <tr>
+                        <td>@p.Name</td>
+                        <td>@p.Description</td>
+                        <td class="text-end">@p.Price</td>
+                        <td class="text-end">@p.StockStatus</td>
+                        <td class="text-end">@p.NumberSold</td>
+                        <td>@(p.CategoryName ?? "-")</td>
+                        <td>@(p.SizeName ?? "-")</td>
+                        <td class="text-nowrap">
+                            <button class="btn btn-primary btn-sm"
+                                    @onclick="() => AddToSelected(p)"
+                                    disabled="@alreadyAdded">
+                                Order
+                            </button>
+                        </td>
+                    </tr>
                 }
-            </InputSelect>
-            <ValidationMessage For="() => form.ArticleNo" />
-        </div>
-
-        <div class="field small">
-            <label for="qty">Antal</label>
-            <InputNumber id="qty" class="input" @bind-Value="form.Quantity" />
-            <ValidationMessage For="() => form.Quantity" />
-        </div>
-
-        <button type="submit" class="btn">Skapa</button>
+            </tbody>
+        </table>
     </div>
-</EditForm>
-
-@if (!string.IsNullOrWhiteSpace(info))
+}
+else if (!isLoading && string.IsNullOrWhiteSpace(loadError))
 {
-    <p class="notice">@info</p>
+    <div class="alert alert-light">Inga produkter hittades.</div>
 }
 
-@if (orders.Count > 0)
+@if (selected.Count > 0)
 {
-    <h4>Senaste ordrar</h4>
-    <ul class="list">
-        @foreach (var o in orders.OrderByDescending(x => x.CreatedAt).Take(5))
-        {
-            <li>
-                <span class="muted">#@o.Id</span>
-                — @o.Customer, @GetProductName(o.ArticleNo) (@o.ArticleNo), @o.Quantity st
-                — <span class="muted">@o.CreatedAt:yyyy-MM-dd HH:mm</span>
-            </li>
-        }
-    </ul>
-}
-else
-{
-    <p class="muted">Inga ordrar ännu.</p>
+    <h4 class="mt-4">Orderlista</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Namn</th>
+                    <th>Beskrivning</th>
+                    <th class="text-end">Pris</th>
+                    <th class="text-end">Lager</th>
+                    <th class="text-end">Sålda</th>
+                    <th>Kategori</th>
+                    <th>Storlek</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in selected)
+                {
+                    <tr>
+                        <td>@p.Name</td>
+                        <td>@p.Description</td>
+                        <td class="text-end">@p.Price</td>
+                        <td class="text-end">@p.StockStatus</td>
+                        <td class="text-end">@p.NumberSold</td>
+                        <td>@(p.CategoryName ?? "-")</td>
+                        <td>@(p.SizeName ?? "-")</td>
+                        <td class="text-nowrap">
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => RemoveFromSelected(p.ProductId)">
+                                Ta bort
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @code {
-    // "Katalog" för dropdown – enkel lista
-    private static readonly ProductOption[] Products = new[]
+    // Data
+    List<ProductDto> products = new();
+    List<ProductDto> selected = new();
+
+    // UI-state
+    bool isLoading = true;
+    string? loadError;
+
+    protected override async Task OnInitializedAsync()
     {
-        new ProductOption("JACKA-01", "Jacka"),
-        new ProductOption("TSHIRT-01", "T-shirt"),
-        new ProductOption("KEPS-01", "Keps"),
-        new ProductOption("BYXA-01", "Byxa"),
-    };
+        await LoadProducts();
+    }
 
-    // Formmodell
-    private OrderForm form = new() { Quantity = 1 };
-    private string? info;
-
-    // In-memory ordrar
-    private readonly List<Order> orders = new();
-
-    private void Create()
+    private async Task LoadProducts()
     {
-        var id = DateTime.Now.ToString("yyyyMMddHHmmss"); // enkel "unik" ID
-        orders.Add(new Order
+        isLoading = true;
+        loadError = null;
+
+        try
         {
-            Id = id,
-            Customer = form.Customer!.Trim(),
-            ArticleNo = form.ArticleNo!, // redan vald i dropdown
-            Quantity = form.Quantity,
-            CreatedAt = DateTime.Now
-        });
-
-        info = $"Order #{id} skapades.";
-        form = new OrderForm { Quantity = 1 }; // nollställ
+            // API: Hämta produkter — din controller har [Route("api/[controller]")] => /api/Product
+            //     Justera till absolut URL om du inte har BaseAddress satt på HttpClient.
+            var result = await Http.GetFromJsonAsync<List<ProductDto>>("api/Product");
+            products = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            // API: Fel fångas här — kan vara fel port, CORS, fel path (api/Product vs api/Products), etc.
+            loadError = $"Kunde inte hämta produkter: {ex.Message}";
+            products = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private string GetProductName(string code) =>
-        Products.FirstOrDefault(p => p.Code == code)?.Name ?? code;
-
-    // Modeller
-    private class Order
+    private void AddToSelected(ProductDto p)
     {
-        public string Id { get; set; } = "";
-        public string Customer { get; set; } = "";
-        public string ArticleNo { get; set; } = "";
-        public int Quantity { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        if (!selected.Any(s => s.ProductId == p.ProductId))
+        {
+            selected.Add(p);
+        }
     }
 
-    private class OrderForm
+    private void RemoveFromSelected(int productId)
     {
-        [Required(ErrorMessage = "Ange kund.")]
-        [StringLength(60)]
-        public string? Customer { get; set; }
-
-        [Required(ErrorMessage = "Välj en produkt.")]
-        public string? ArticleNo { get; set; } = "";
-
-        [Range(1, 100000, ErrorMessage = "Antal måste vara minst 1.")]
-        public int Quantity { get; set; } = 1;
+        var i = selected.FindIndex(s => s.ProductId == productId);
+        if (i >= 0) selected.RemoveAt(i);
     }
-
-    private record ProductOption(string Code, string Name);
 }
-
-<style>
-    h3 {
-        margin: .25rem 0 1rem;
-    }
-
-    .form {
-        display: grid;
-        grid-template-columns: 1fr 1fr auto;
-        gap: .6rem;
-        align-items: end;
-        max-width: 720px
-    }
-
-    .field {
-        display: flex;
-        flex-direction: column;
-        gap: .25rem
-    }
-
-        .field.small {
-            max-width: 140px
-        }
-
-    .input {
-        padding: .45rem .55rem;
-        border: 1px solid #d1d5db;
-        border-radius: .4rem;
-    }
-
-    .btn {
-        padding: .45rem .9rem;
-        border: 1px solid #111;
-        border-radius: .4rem;
-        background: #111;
-        color: #fff;
-        cursor: pointer;
-    }
-
-    .notice {
-        margin: .75rem 0;
-        padding: .5rem .7rem;
-        border: 1px solid #16a34a;
-        background: #f0fdf4;
-        color: #166534;
-        border-radius: .4rem;
-    }
-
-    .list {
-        margin: .25rem 0 0;
-        padding-left: 1rem;
-    }
-
-        .list li {
-            margin: .2rem 0;
-        }
-
-    .muted {
-        color: #6b7280;
-    }
-
-    @@media (max-width:720px) {
-        .form {
-            grid-template-columns: 1fr;
-        }
-
-        .field.small {
-            max-width: none
-        }
-    }
-</style>

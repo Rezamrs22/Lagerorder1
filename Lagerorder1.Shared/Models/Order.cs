@@ -10,8 +10,8 @@ namespace Lagerorder1.Shared.Models
     {
         public int OrderId { get; set; }
         public DateTime OrderDate { get; set; } = DateTime.Now;
+        public string CustomerName { get; set; } = string.Empty;
         
-
         public List<OrderDetail> OrderDetails { get; set; }= new();
     }
 

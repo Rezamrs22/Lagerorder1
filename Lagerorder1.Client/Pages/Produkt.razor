@@ -2,11 +2,103 @@
 @using System.Globalization
 @using System.Net.Http.Json
 @using Lagerorder1.Shared.DTOs
+@using Microsoft.AspNetCore.Components.Forms
 @inject HttpClient Http
 
 <h1>Produkter</h1>
 
-<a href="/addproduct" class="btn btn-primary">Lägg till produkt</a>
+<div class="button-container">
+    <button class="@buttonClass" @onclick="ToggleForm">@buttonText</button>
+</div>
+
+<div id="addProductForm" class="@formCssClass">
+    <h3>Lägg till produkt</h3>
+    @if (isFormVisible)
+    {
+        <EditForm Model="@newProduct" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="name" class="form-label">Produktnamn</label>
+                    <InputText id="name" class="form-control input-small" @bind-Value="newProduct.Name" />
+                    <ValidationMessage For="@(() => newProduct.Name)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="price" class="form-label">Pris</label>
+                    <InputNumber id="price" class="form-control input-small" @bind-Value="newProduct.Price" />
+                    <ValidationMessage For="@(() => newProduct.Price)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="stockStatus" class="form-label">Antal till lagret</label>
+                    <InputNumber id="stockStatus" class="form-control input-small" TValue="int" @bind-Value="newProduct.StockStatus" />
+                    <small class="text-muted">Hur många enheter du lägger in i lagret nu.</small>
+                    <ValidationMessage For="@(() => newProduct.StockStatus)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="numberSold" class="form-label">Antal sålda</label>
+                    <InputNumber id="numberSold" class="form-control input-small" TValue="int" @bind-Value="newProduct.NumberSold" />
+                    <small class="text-muted">Hur många enheter som redan sålts.</small>
+                    <ValidationMessage For="@(() => newProduct.NumberSold)" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="category" class="form-label">Kategori</label>
+                    <InputSelect id="category" class="form-select input-small" TValue="int" @bind-Value="newProduct.CategoryId">
+                        <option value="0" disabled>— Välj kategori —</option>
+                        @foreach (var c in categories)
+                        {
+                            <option value="@c.CategoryId">@c.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => newProduct.CategoryId)" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                        <label for="Size" class="form-label">Storlek</label>
+                        <InputSelect id="size" class="form-select input-small" TValue="int" @bind-Value="newProduct.SizeId">
+                            <option value="0" disabled>— Välj storlek —</option>
+                            @foreach (var s in sizes)
+                            {
+                                <option value="@s.SizeId">@s.Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => newProduct.SizeId)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="description" class="form-label">Beskrivning</label>
+                    <InputText id="description" class="form-control input-small" @bind-Value="newProduct.Description" />
+                    <ValidationMessage For="@(() => newProduct.Description)" />
+                </div>
+
+            </div>
+        
+
+            
+            
+            <!-- <button type="submit" class="btn btn-primary">Lägg till produkt</button> -->
+            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">Lägg till produkt</button>
+
+            @if (!string.IsNullOrWhiteSpace(success))
+            {
+                <div class="alert alert-success mt-3">@success</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(submitError))
+            {
+                <div class="alert alert-danger mt-3">@submitError</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(loadFormError))
+            {
+                <div class="alert alert-warning mt-3">@loadFormError</div>
+            }
+        </EditForm>
+    }
+
+
+</div>
 
 <div class="toolbar">
     <div class="cats">
@@ -23,13 +115,13 @@
            @bind="search" @bind:event="oninput" />
 </div>
 
-@if (isLoading)
+@if (isLoadingList)
 {
     <div class="empty">Laddar…</div>
 }
-else if (!string.IsNullOrWhiteSpace(loadError))
+else if (!string.IsNullOrWhiteSpace(loadListError))
 {
-    <div class="empty">@loadError</div>
+    <div class="empty">@loadListError</div>
 }
 else if (!VisibleProducts.Any())
 {
@@ -97,6 +189,41 @@ else
 }
 
 <style>
+    #addProductForm {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.6s ease-out, opacity 0.6s ease-out;
+    opacity: 0;
+    }
+
+    #addProductForm.show {
+    max-height: 1000px; /* tillräckligt för att visa hela formuläret */
+    opacity: 1;
+    }
+    .input-small {
+    max-width: 300px;
+    }
+    .button-container {
+        display: inline-block;
+        margin-bottom: 10px;
+    }
+    .btn-orange {
+    background-color: orange;
+    color: white;
+    padding: 5px 50px;
+
+    }
+    .btn-orange:hover {
+        background-color: red;
+        color: white;
+        border: none;
+    }
+
+
+
+
+
+
     :root {
         --bg: #0b1220;
         --panel: #ffffff;
@@ -332,6 +459,114 @@ else
 </style>
 
 @code {
+    bool isFormVisible = false;
+
+    void ToggleForm()
+    {
+        isFormVisible = !isFormVisible;
+    }
+    string buttonText => isFormVisible ? "     Stäng    " : "Lägg till produkt";
+    string buttonClass => "btn " + (isFormVisible ? "btn-orange" : "btn-primary");
+
+    string formCssClass => isFormVisible ? "show" : "";
+
+
+    
+
+     
+    ProductDto newProduct = new();   
+
+    
+    List<CategoryDto> categories = new();
+    List<SizeDto> sizes = new();
+
+    bool isLoadingForm = true;
+    bool isSubmitting = false;
+    bool isLoadingList = true;
+    string? loadListError;
+    string? loadFormError;
+    string? submitError;
+    string? success;
+
+     protected override async Task OnInitializedAsync()
+    {
+        
+        await Task.WhenAll(LoadCategoriesAndSizes(), LoadProducts());
+    }
+
+    private async Task LoadCategoriesAndSizes()
+    {
+        isLoadingForm = true;
+        loadFormError = null;
+
+        try
+        {
+            
+            
+            categories = await Http.GetFromJsonAsync<List<CategoryDto>>("api/Category") 
+                         ?? new();
+
+           
+            sizes = await Http.GetFromJsonAsync<List<SizeDto>>("api/Size")
+                     ?? new();
+        }
+        catch (Exception ex)
+        {
+            loadFormError = $"Kunde inte hämta kategorier:/storlekar {ex.Message}";
+            categories.Clear();
+            sizes.Clear();
+        }
+        finally
+        {
+            isLoadingForm = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        submitError = null;
+        success = null;
+        isSubmitting = true;
+
+        try
+        {
+            
+            var payload = new 
+            { 
+                newProduct.Name, 
+                newProduct.Description, 
+                newProduct.Price,
+                newProduct.StockStatus,
+                newProduct.NumberSold,
+                newProduct.CategoryId, 
+                newProduct.SizeId 
+            };
+
+            var resp = await Http.PostAsJsonAsync("api/product", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                success = "Produkten skapades.";
+                newProduct = new(); 
+            }
+            else
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                submitError = $"API-svar: {(int)resp.StatusCode} {resp.ReasonPhrase}. {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            submitError = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+
+
+
     // Kultur för å/ä/ö-sök
     private readonly CultureInfo sv = CultureInfo.GetCultureInfo("sv-SE");
 
@@ -339,15 +574,15 @@ else
     private string category = "alla";
     private string? search;
 
-    private bool isLoading = true;
-    private string? loadError;
+    //private bool isLoading = true;
+    //private string? loadError;
 
-    protected override async Task OnInitializedAsync() => await LoadProducts();
+    //protected override async Task OnInitializedAsync() => await LoadProducts();
 
     private async Task LoadProducts()
     {
-        isLoading = true;
-        loadError = null;
+        isLoadingList = true;
+        loadListError = null;
 
         try
         {
@@ -355,12 +590,12 @@ else
         }
         catch (Exception ex)
         {
-            loadError = $"Kunde inte hämta produkter: {ex.Message}";
+            loadListError = $"Kunde inte hämta produkter: {ex.Message}";
             products = new();
         }
         finally
         {
-            isLoading = false;
+            isLoadingList = false;
         }
     }
 

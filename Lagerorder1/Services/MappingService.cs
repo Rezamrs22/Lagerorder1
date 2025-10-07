@@ -81,6 +81,18 @@ namespace Lagerorder1.Services
                     UnitPrice = od.UnitPrice
                 }).ToList()
             };
+
+        }
+        public static OrderDetailDto MapToOrderDetailDto(OrderDetail orderDetail)
+        {
+            return new OrderDetailDto
+            {
+                OrderDetailId = orderDetail.OrderDetailId,
+                ProductId = orderDetail.ProductId,
+                ProductName = orderDetail.Product?.Name ?? "", // kräver att Product har en Name
+                Quantity = orderDetail.Quantity,
+                UnitPrice = orderDetail.UnitPrice
+            };
         }
 
     }

@@ -1,0 +1,292 @@
+@page "/Account/Admin"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Lagerorder1.Data
+@using Microsoft.EntityFrameworkCore
+
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ILogger<Admin> Logger
+
+<p class="text-success">✅ Admin.razor körs!</p>
+
+
+@attribute [Authorize(Roles = "Manager,Admin")]
+
+
+<h3>Admin Dashboard</h3>
+
+<h4>Skapa ny roll</h4>
+<input @bind="newRole" placeholder="Rollnamn" />
+<button type="button" class="btn btn-primary" @onclick="CreateRole">Skapa</button>
+
+<h4>Befintliga roller</h4>
+<p>Antal roller: @roles.Count</p>
+<ul>
+    @foreach (var role in roles)
+    {
+        <li>
+            @role
+            <button type="button"
+                    class="btn btn-danger btn-sm ms-2"
+                    @onclick="@(() => ConfirmDeleteRole(role))">
+                Radera
+            </button>
+        </li>
+    }
+</ul>
+
+<h4>Tilldela roll till användare</h4>
+<input @bind="userEmail" placeholder="E-post" />
+<input @bind="assignRole" placeholder="Roll" />
+<button type="button" class="btn btn-success" @onclick="AssignRole">Tilldela</button>
+
+<h4>Användare och deras roller</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>E-post</th>
+            <th>Roller</th>
+            <th>Åtgärder</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in users)
+        {
+            <tr>
+                <td>@user.Email</td>
+                <td>@(user.Roles.Any() ? string.Join(", ", user.Roles) : "user roll")</td>
+                <td>
+                    @if (user.Roles.Any())
+                    {
+                        @foreach (var role in user.Roles)
+                        {
+                            <button type="button"
+                                    class="btn btn-danger btn-sm me-1"
+                                    @onclick="@(() => RemoveRole(user.Email, role))">
+                                Ta bort @role
+                            </button>
+                        }
+                    }
+
+                    <!-- 🔹 Ny knapp för att ta bort användare -->
+                    @if (!user.Roles.Contains("Admin") && !user.Roles.Contains("Manager"))
+                    {
+                     <button type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      @onclick="@(() => ConfirmDeleteUser(user.Email))">
+                      ❌ Ta bort användare
+                     </button>
+                    }
+                 
+
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@* 🔹 Modal för rollborttagning *@
+@if (showConfirmDialog)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bekräfta borttagning</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(roleToDelete))
+                    {
+                        <p>Är du säker på att du vill radera rollen '<b>@roleToDelete</b>'?</p>
+                    }
+                    else if (!string.IsNullOrEmpty(userToDelete))
+                    {
+                        <p>Är du säker på att du vill ta bort användaren '<b>@userToDelete</b>'?</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDialog">Avbryt</button>
+                    <button class="btn btn-danger" @onclick="DeleteConfirmed">Radera</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string newRole = "";
+    private string userEmail = "";
+    private string assignRole = "";
+    private List<string> roles = new();
+    private List<UserWithRoles> users = new();
+
+    // Modal state
+    private bool showConfirmDialog = false;
+    private string? roleToDelete;
+    private string? userToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+        await LoadUsers();
+    }
+
+   @* private Task LoadRoles()
+    {
+        roles = RoleManager.Roles.Select(r => r.Name!).ToList();
+        return Task.CompletedTask;
+    }*@
+    private async Task LoadRoles()
+    {
+        roles = await RoleManager.Roles.Select(r => r.Name!).ToListAsync();
+      
+    }
+
+    private async Task LoadUsers()
+    {
+        users= new();
+        var allUsers = UserManager.Users.ToList();
+        foreach (var user in allUsers)
+        {
+            var userRoles = await UserManager.GetRolesAsync(user);
+            users.Add(new UserWithRoles
+            {
+                Email = user.Email!,
+                Roles = userRoles.ToList()
+            });
+        }
+    }
+
+    private async Task CreateRole()
+    {
+        if (!string.IsNullOrWhiteSpace(newRole))
+        {
+            if (!await RoleManager.RoleExistsAsync(newRole))
+            {
+                var result = await RoleManager.CreateAsync(new IdentityRole(newRole));
+                if (result.Succeeded)
+                {
+                    await LoadRoles();
+                    newRole = "";
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    private async Task AssignRole()
+    {
+        if (!string.IsNullOrWhiteSpace(userEmail) && !string.IsNullOrWhiteSpace(assignRole))
+        {
+            var user = await UserManager.FindByEmailAsync(userEmail);
+            if (user != null && await RoleManager.RoleExistsAsync(assignRole))
+            {
+                var result = await UserManager.AddToRoleAsync(user, assignRole);
+                if (result.Succeeded)
+                {
+                    userEmail = "";
+                    assignRole = "";
+                    await LoadUsers();
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    private async Task RemoveRole(string email, string role)
+    {
+        var user = await UserManager.FindByEmailAsync(email);
+        if (user != null && await UserManager.IsInRoleAsync(user, role))
+        {
+            var result = await UserManager.RemoveFromRoleAsync(user, role);
+            if (result.Succeeded)
+            {
+                await LoadUsers();
+                StateHasChanged();
+            }
+        }
+    }
+
+    // 🔹 Roll-borttagning
+    private void ConfirmDeleteRole(string roleName)
+    {
+        roleToDelete = roleName;
+        userToDelete = null;
+        showConfirmDialog = true;
+    }
+
+    // 🔹 User-borttagning
+    private void ConfirmDeleteUser(string email)
+    {
+        userToDelete = email;
+        roleToDelete = null;
+        showConfirmDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showConfirmDialog = false;
+        roleToDelete = null;
+        userToDelete = null;
+    }
+
+    private async Task DeleteConfirmed()
+    {
+        if (!string.IsNullOrEmpty(roleToDelete))
+        {
+            await DeleteRole(roleToDelete);
+        }
+        else if (!string.IsNullOrEmpty(userToDelete))
+        {
+            await DeleteUser(userToDelete);
+        }
+
+        CloseDialog();
+    }
+
+    private async Task DeleteRole(string roleName)
+    {
+        var role = await RoleManager.FindByNameAsync(roleName);
+        if (role != null)
+        {
+            var result = await RoleManager.DeleteAsync(role);
+            if (result.Succeeded)
+            {
+                await LoadRoles();
+                await LoadUsers();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task DeleteUser(string email)
+    {
+        var user = await UserManager.FindByEmailAsync(email);
+        if (user != null)
+        {
+            var result = await UserManager.DeleteAsync(user);
+            if (result.Succeeded)
+            {
+                await LoadUsers();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private class UserWithRoles
+    {
+        public string Email { get; set; } = "";
+        public List<string> Roles { get; set; } = new();
+    }
+}
+
+
+
+
+
+
+

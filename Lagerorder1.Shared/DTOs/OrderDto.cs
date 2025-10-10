@@ -23,5 +23,13 @@ namespace Lagerorder1.Shared.DTOs
         public List<OrderDetailDto> OrderDetails { get; set; } = new();
     }
 
+    public class OrderConfirmationDto
+    {
+        public int OrderId { get; set; }         
+
+        public string OrderNumber { get; set; } = "";
+        public string BarcodeSvg { get; set; } = "";
+    }
+
 }
 

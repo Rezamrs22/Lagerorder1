@@ -1,17 +1,110 @@
 ﻿@page "/produkt"
 @using System.Globalization
-@using System.Linq
+@using System.Net.Http.Json
+@using Lagerorder1.Shared.DTOs
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
 
 <h1>Produkter</h1>
 
-<a href="/addproduct" class="btn btn-primary">Lägg till produkt</a>
+<div class="button-container">
+    <button class="@buttonClass" @onclick="ToggleForm">@buttonText</button>
+</div>
 
+<div id="addProductForm" class="@formCssClass">
+    <h3>Lägg till produkt</h3>
+    @if (isFormVisible)
+    {
+        <EditForm Model="@newProduct" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="name" class="form-label">Produktnamn</label>
+                    <InputText id="name" class="form-control input-small" @bind-Value="newProduct.Name" />
+                    <ValidationMessage For="@(() => newProduct.Name)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="price" class="form-label">Pris</label>
+                    <InputNumber id="price" class="form-control input-small" @bind-Value="newProduct.Price" />
+                    <ValidationMessage For="@(() => newProduct.Price)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="stockStatus" class="form-label">Antal till lagret</label>
+                    <InputNumber id="stockStatus" class="form-control input-small" TValue="int" @bind-Value="newProduct.StockStatus" />
+                    <small class="text-muted">Hur många enheter du lägger in i lagret nu.</small>
+                    <ValidationMessage For="@(() => newProduct.StockStatus)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="numberSold" class="form-label">Antal sålda</label>
+                    <InputNumber id="numberSold" class="form-control input-small" TValue="int" @bind-Value="newProduct.NumberSold" />
+                    <small class="text-muted">Hur många enheter som redan sålts.</small>
+                    <ValidationMessage For="@(() => newProduct.NumberSold)" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="category" class="form-label">Kategori</label>
+                    <InputSelect id="category" class="form-select input-small" TValue="int" @bind-Value="newProduct.CategoryId">
+                        <option value="0" disabled>— Välj kategori —</option>
+                        @foreach (var c in categories)
+                        {
+                            <option value="@c.CategoryId">@c.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => newProduct.CategoryId)" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                        <label for="Size" class="form-label">Storlek</label>
+                        <InputSelect id="size" class="form-select input-small" TValue="int" @bind-Value="newProduct.SizeId">
+                            <option value="0" disabled>— Välj storlek —</option>
+                            @foreach (var s in sizes)
+                            {
+                                <option value="@s.SizeId">@s.Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => newProduct.SizeId)" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="description" class="form-label">Beskrivning</label>
+                    <InputText id="description" class="form-control input-small" @bind-Value="newProduct.Description" />
+                    <ValidationMessage For="@(() => newProduct.Description)" />
+                </div>
+
+            </div>
+        
+
+            
+            
+            <!-- <button type="submit" class="btn btn-primary">Lägg till produkt</button> -->
+            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">Lägg till produkt</button>
+
+            @if (!string.IsNullOrWhiteSpace(success))
+            {
+                <div class="alert alert-success mt-3">@success</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(submitError))
+            {
+                <div class="alert alert-danger mt-3">@submitError</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(loadFormError))
+            {
+                <div class="alert alert-warning mt-3">@loadFormError</div>
+            }
+        </EditForm>
+    }
+
+
+</div>
 
 <div class="toolbar">
     <div class="cats">
         @foreach (var c in Categories)
         {
-            <button class="chip @(category == c ? "active" : null)"
+            <button class="chip @(string.Equals(category, c, StringComparison.OrdinalIgnoreCase) ? "active" : null)"
                     @onclick="(() => SetCategory(c))">
                 @ToTitle(c)
             </button>
@@ -22,7 +115,15 @@
            @bind="search" @bind:event="oninput" />
 </div>
 
-@if (!VisibleProducts.Any())
+@if (isLoadingList)
+{
+    <div class="empty">Laddar…</div>
+}
+else if (!string.IsNullOrWhiteSpace(loadListError))
+{
+    <div class="empty">@loadListError</div>
+}
+else if (!VisibleProducts.Any())
 {
     <div class="empty">Inga produkter hittades.</div>
 }
@@ -34,38 +135,53 @@ else
             <div class="card">
                 <div class="card-head">
                     <div class="title">@p.Name</div>
-                    <span class="badge">@ToTitle(p.Category)</span>
+                    <span class="badge">@ToTitle(p.CategoryName)</span>
                 </div>
 
                 <div class="price">Pris: <strong>@p.Price.ToString("C", sv)</strong></div>
 
-                <div class="sizes">
-                    <span class="label">Storlek:</span>
-                    @foreach (var s in Sizes)
-                    {
-                        var qty = GetStock(p, s);
-                        var isDisabled = qty == 0;
-                        var isActive = GetSelectedSize(p) == s;
+                @if (!string.IsNullOrWhiteSpace(p.SizeName))
+                {
+                    <div class="sizes">
+                        <span class="label">Storlek:</span>
+                        @{
+                            // Hämta alla varianter (storlekar) för aktuell produkt p
+                            var variants = products
+                                .Where(v => v.ProductId == p.ProductId)
+                                // sortera som du vill – här alfabetiskt på storleksnamn
+                                .OrderBy(v => v.SizeName)
+                                .ToList();
 
-                        <button class="size-pill @(isActive ? "active" : null) @(isDisabled ? "disabled" : null)"
-                                disabled="@isDisabled"
-                                title="@(isDisabled ? "Slut i lager" : $"{qty} i lager")"
-                                @onclick="(() => SelectSize(p, s))">
-                            @s
-                        </button>
-                    }
-                </div>
+                            var selectedId = GetSelectedSizeId(p);
+                        }
 
+                        @foreach (var v in variants)
+                        {
+                            var qty = v.StockStatus;
+                            var isDisabled = qty == 0;
+                            var isActive = selectedId == v.SizeId;
+
+                            <button class="size-pill @(isActive ? "active" : null) @(isDisabled ? "disabled" : null)"
+                                    disabled="@isDisabled"
+                                    title="@(isDisabled ? "Slut i lager" : $"{qty} i lager")"
+                                    @onclick="(() => SelectSize(p, v.SizeId))">
+                                @v.SizeName
+                            </button>
+                        }
+                    </div>
+
+                }
+
+                @{
+                    var stock = p.StockStatus;
+                    var cls = StockClass(stock);
+                    var txt = StockLabel(stock);
+                }
                 <div class="stock-row">
-                    <span>Lager (vald): <strong>@GetStock(p, GetSelectedSize(p)) st</strong></span>
+                    <span>Lager: <strong>@stock st</strong></span>
                     <span class="spacer"></span>
-                    @{
-                        var cnt = GetStock(p, GetSelectedSize(p));
-                        var cls = cnt == 0 ? "stock-zero" : (cnt <= 5 ? "stock-low" : "stock-ok");
-                        var txt = cnt == 0 ? "Slut" : (cnt <= 5 ? "Lågt" : "I lager");
-                    }
                     <span class="stock-pill @cls"><span class="dot"></span>@txt</span>
-                    <span class="total">Totalt: <strong>@p.StockBySize.Values.Sum() st</strong></span>
+                    <span class="sold">Sålda: <strong>@p.NumberSold</strong></span>
                 </div>
             </div>
         }
@@ -73,6 +189,41 @@ else
 }
 
 <style>
+    #addProductForm {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.6s ease-out, opacity 0.6s ease-out;
+    opacity: 0;
+    }
+
+    #addProductForm.show {
+    max-height: 1000px; /* tillräckligt för att visa hela formuläret */
+    opacity: 1;
+    }
+    .input-small {
+    max-width: 300px;
+    }
+    .button-container {
+        display: inline-block;
+        margin-bottom: 10px;
+    }
+    .btn-orange {
+    background-color: orange;
+    color: white;
+    padding: 5px 50px;
+
+    }
+    .btn-orange:hover {
+        background-color: red;
+        color: white;
+        border: none;
+    }
+
+
+
+
+
+
     :root {
         --bg: #0b1220;
         --panel: #ffffff;
@@ -308,85 +459,239 @@ else
 </style>
 
 @code {
+    bool isFormVisible = false;
+
+    void ToggleForm()
+    {
+        isFormVisible = !isFormVisible;
+    }
+    string buttonText => isFormVisible ? "     Stäng    " : "Lägg till produkt";
+    string buttonClass => "btn " + (isFormVisible ? "btn-orange" : "btn-primary");
+
+    string formCssClass => isFormVisible ? "show" : "";
+
+
     
+
+     
+    ProductDto newProduct = new();   
+
+    
+    List<CategoryDto> categories = new();
+    List<SizeDto> sizes = new();
+
+    bool isLoadingForm = true;
+    bool isSubmitting = false;
+    bool isLoadingList = true;
+    string? loadListError;
+    string? loadFormError;
+    string? submitError;
+    string? success;
+
+     protected override async Task OnInitializedAsync()
+    {
+        
+        await Task.WhenAll(LoadCategoriesAndSizes(), LoadProducts());
+    }
+
+    private async Task LoadCategoriesAndSizes()
+    {
+        isLoadingForm = true;
+        loadFormError = null;
+
+        try
+        {
+            
+            
+            categories = await Http.GetFromJsonAsync<List<CategoryDto>>("api/Category") 
+                         ?? new();
+
+           
+            sizes = await Http.GetFromJsonAsync<List<SizeDto>>("api/Size")
+                     ?? new();
+        }
+        catch (Exception ex)
+        {
+            loadFormError = $"Kunde inte hämta kategorier:/storlekar {ex.Message}";
+            categories.Clear();
+            sizes.Clear();
+        }
+        finally
+        {
+            isLoadingForm = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        submitError = null;
+        success = null;
+        isSubmitting = true;
+
+        try
+        {
+            
+            var payload = new 
+            { 
+                newProduct.Name, 
+                newProduct.Description, 
+                newProduct.Price,
+                newProduct.StockStatus,
+                newProduct.NumberSold,
+                newProduct.CategoryId, 
+                newProduct.SizeId 
+            };
+
+            var resp = await Http.PostAsJsonAsync("api/product", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                success = "Produkten skapades.";
+                newProduct = new(); 
+            }
+            else
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                submitError = $"API-svar: {(int)resp.StatusCode} {resp.ReasonPhrase}. {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            submitError = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+
+
+
+    // Kultur för å/ä/ö-sök
     private readonly CultureInfo sv = CultureInfo.GetCultureInfo("sv-SE");
 
-    
-    private static readonly string[] Categories = new[] { "alla", "jacka", "tshirt", "keps", "byxor" };
-    private static readonly string[] Sizes = new[] { "XS", "S", "M", "L", "XL" };
-
-    
+    private List<ProductDto> products = new();
     private string category = "alla";
     private string? search;
 
-    
-    private List<Product> products = new();
-    private Dictionary<string, string> selectedSize = new(); 
+    //private bool isLoading = true;
+    //private string? loadError;
 
-    protected override void OnInitialized()
+    //protected override async Task OnInitializedAsync() => await LoadProducts();
+
+    private async Task LoadProducts()
     {
-        
-        products = new()
+        isLoadingList = true;
+        loadListError = null;
+
+        try
         {
-            new Product { Id="1", Name="Vindjacka Svart", Category="jacka", Price=599m,
-                StockBySize = new() { ["XS"]=2, ["S"]=3, ["M"]=4, ["L"]=2, ["XL"]=1 } },
-            new Product { Id="2", Name="Basic Tee Vit", Category="tshirt", Price=149m,
-                StockBySize = new() { ["XS"]=10, ["S"]=12, ["M"]=15, ["L"]=9, ["XL"]=5 } },
-            new Product { Id="3", Name="Trucker Keps", Category="keps", Price=129m,
-                StockBySize = new() { ["XS"]=0, ["S"]=0, ["M"]=20, ["L"]=0, ["XL"]=0 } },
-            new Product { Id="4", Name="Cargo Byxa", Category="byxor", Price=399m,
-                StockBySize = new() { ["XS"]=3, ["S"]=5, ["M"]=6, ["L"]=4, ["XL"]=2 } }
-        };
-
-        foreach (var p in products)
-            selectedSize[p.Id] = FirstAvailableSize(p) ?? "M";
+            products = await Http.GetFromJsonAsync<List<ProductDto>>("api/Product") ?? new();
+        }
+        catch (Exception ex)
+        {
+            loadListError = $"Kunde inte hämta produkter: {ex.Message}";
+            products = new();
+        }
+        finally
+        {
+            isLoadingList = false;
+        }
     }
 
-   
-    private List<Product> VisibleProducts =>
+    // --- Kategorier (dynamiskt) ---
+    private List<string> Categories =>
+        new[] { "alla" }
+        .Concat(
+            products
+                .Select(p => p.CategoryName)                 // <- DTO-fält
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!)                             // släck nullability
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c, StringComparer.CurrentCultureIgnoreCase)
+        )
+        .ToList();
+
+    // --- Filtrering ---
+    private IEnumerable<ProductDto> VisibleProducts =>
         products
-            .Where(p => category == "alla" || p.Category == category)
-            .Where(p => string.IsNullOrWhiteSpace(search) ||
-                        (p.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
-            .ToList();
+            .Where(p => CategoryMatches(p, category))
+            .Where(p => MatchesSearch(p, search));
 
-    private void SetCategory(string c) => category = c;
-
-    private string? FirstAvailableSize(Product p)
+    private static bool CategoryMatches(ProductDto p, string selectedCategory)
     {
-        foreach (var s in Sizes)
-            if (GetStock(p, s) > 0) return s;
-        return null;
+        if (string.IsNullOrWhiteSpace(selectedCategory) ||
+            selectedCategory.Equals("alla", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var cat = p.CategoryName;                            // <- DTO-fält
+        return !string.IsNullOrWhiteSpace(cat) &&
+               cat.Equals(selectedCategory, StringComparison.OrdinalIgnoreCase);
     }
 
-    private string GetSelectedSize(Product p) =>
-        selectedSize.TryGetValue(p.Id, out var s) ? s : (FirstAvailableSize(p) ?? "M");
-
-    private void SelectSize(Product p, string s)
+    private bool MatchesSearch(ProductDto p, string? query)
     {
-        if (GetStock(p, s) <= 0) return; 
-        selectedSize[p.Id] = s;
+        if (string.IsNullOrWhiteSpace(query)) return true;
+        var name = p?.Name ?? string.Empty;
+        return sv.CompareInfo.IndexOf(name, query,
+            CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
     }
 
-    private int GetStock(Product p, string size) =>
-        p.StockBySize.TryGetValue(size, out var v) ? v : 0;
-
-    private static string ToTitle(string c) => c switch
+    // UI-hjälp
+    private static string ToTitle(string? c) => c switch
     {
         "alla" => "Alla",
-        "jacka" => "Jacka",
-        "tshirt" => "T-shirt",
-        "keps" => "Keps",
-        "byxor" => "Byxor",
+        null or "" => "",
         _ => c
     };
 
-    private class Product
+    private static string StockClass(int stock) =>
+         stock == 0 ? "stock-zero"
+        : stock <= 5 ? "stock-low"
+        : "stock-ok";
+
+    private static string StockLabel(int stock) =>
+         stock == 0 ? "Slut"
+        : stock <= 5 ? "Lågt"
+        : "I lager";
+
+    private void SetCategory(string c) => category = c;
+
+
+
+    // Håller vald storlek per produkt (ProductId -> SizeId)
+    private readonly Dictionary<int, int> selectedSizeByProduct = new();
+
+    // Returnerar vald sizeId för produkten, eller första tillgängliga
+    private int? GetSelectedSizeId(ProductDto p) =>
+    selectedSizeByProduct.TryGetValue(p.ProductId, out var sid)
+        ? sid
+        : GetFirstAvailableSizeId(p);
+
+    // Första storlek med lager > 0
+    private int? GetFirstAvailableSizeId(ProductDto p) =>
+    products
+        .Where(v => v.ProductId == p.ProductId && v.StockStatus > 0)
+        .Select(v => (int?)v.SizeId)
+        .FirstOrDefault();
+
+    // Sätt vald storlek (ignorerar klick om slut i lager)
+    private void SelectSize(ProductDto p, int sizeId)
     {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty; 
-        public decimal Price { get; set; }
-        public Dictionary<string, int> StockBySize { get; set; } = new();
+        var variant = products.FirstOrDefault(v => v.ProductId == p.ProductId && v.SizeId == sizeId);
+        if (variant is null || variant.StockStatus <= 0) return;
+        selectedSizeByProduct[p.ProductId] = sizeId;
     }
-}KK
+
+    // Hämta lager för specifik storlek
+    private int GetStock(ProductDto p, int sizeId) =>
+    products.FirstOrDefault(v => v.ProductId == p.ProductId && v.SizeId == sizeId)?.StockStatus ?? 0;
+
+}
+
+
+
+
+
+
+

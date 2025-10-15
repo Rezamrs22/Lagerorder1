@@ -14,14 +14,13 @@
             </NavLink>
         </div>
 
-        <!-- Admin -->
+
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="Account/Admin">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Admin Page
             </NavLink>
         </div>
 
-        <!-- Products -->
         <div class="nav-item px-3 mt-3">
             <NavLink class="nav-link d-flex align-items-center gap-2" href="produkt">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 2048 2048">
@@ -33,7 +32,6 @@
             </NavLink>
         </div>
 
-        <!-- Orders -->
         <div class="nav-item px-3 mt-3">
             <NavLink class="nav-link d-flex align-items-center gap-2" href="Orders">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
@@ -45,7 +43,6 @@
             </NavLink>
         </div>
 
-        <!-- Order Details -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="/orderdetails">
                 <span class="bi bi-bag-check-fill nav-menu" aria-hidden="true"></span> Order detaljer
@@ -54,7 +51,6 @@
 
         <AuthorizeView>
             <Authorized>
-                <!-- Visa endast när användaren är inloggad -->
                 <div class="nav-item px-3">
                     <!-- Viktigt: <a> (inte NavLink) så vi går till serverns /logout -->
                     <a class="nav-link" href="/logout">
@@ -64,7 +60,6 @@
             </Authorized>
 
             <NotAuthorized>
-                <!-- Visa endast när användaren är utloggad -->
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
                         <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
@@ -77,6 +72,17 @@
                 </div>
             </NotAuthorized>
         </AuthorizeView>
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="/changeproduct">
+            <span class="bi bi-box-seam nav-menu" aria-hidden="true"></span> Ändra Produkt
+        </NavLink>
+    </div>
+
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="/auth">
+            <span class="bi bi-lock nav-menu" aria-hidden="true"></span> Auth Required
+        </NavLink>
+    </div>
 
 
     </div>

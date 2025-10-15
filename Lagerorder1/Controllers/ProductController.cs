@@ -88,6 +88,39 @@ namespace Lagerorder1.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id}/addtostock")]
+        public async Task<IActionResult> AddToStock(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            product.StockStatus += 1;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPut("{id}/removefromstock")]
+        public async Task<IActionResult> RemoveFromStock(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            if (product.StockStatus > 0)
+            {
+                product.StockStatus -= 1;
+                await _context.SaveChangesAsync();
+            }
+
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {

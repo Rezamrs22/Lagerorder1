@@ -1,0 +1,190 @@
+@page "/changeproduct"
+@using System.Net.Http.Json
+@using System.Globalization
+@using Lagerorder1.Shared.DTOs
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3>Produkter</h3>
+
+@if (isLoading)
+{
+    <div class="alert alert-info">Laddar produkter…</div>
+}
+@if (!string.IsNullOrWhiteSpace(loadError))
+{
+    <div class="alert alert-danger">@loadError</div>
+}
+
+@if (products?.Count > 0)
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Namn</th>
+                    <th>Beskrivning</th>
+                    <th>Kategori</th>
+                    <th class="text-end">Pris</th>
+                    <th>Storlek</th>
+                    <th class="text-end">Lager</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in products)
+                {
+                    <tr>
+                        <td>@p.Name</td>
+                        <td>@p.Description</td>
+                        <td>@(p.CategoryName ?? "-")</td>
+                        <td class="text-end">@p.Price.ToString("C", CultureInfo.GetCultureInfo("sv-SE"))</td>
+                        <td>@(p.SizeName ?? "-")</td>
+                        <td class="text-end">@p.StockStatus</td>
+                        <td class="text-nowrap">
+                            <div class="btn-group btn-group-sm ms-2" role="group" aria-label="Ändra kvantitet">
+                                <button class="btn btn-outline-secondary"
+                                        disabled="@(p.StockStatus <= 0 || busyIds.Contains(p.ProductId))"
+                                        @onclick="() => RemoveFromStock(p.ProductId)">
+                                    −
+                                </button>
+                                <button class="btn btn-outline-secondary"
+                                        disabled="@(p.StockStatus >= 1000 || busyIds.Contains(p.ProductId))"
+                                        @onclick="() => AddToStock(p.ProductId)">
+                                    +
+                                </button>
+                            </div>
+                            <button class="btn btn-danger btn-sm ms-2"
+                                    title="Ta bort produkten permanent"
+                                    @onclick="() => DeleteProduct(p.ProductId)" disabled="@(busyIds.Contains(p.ProductId))">
+                                Ta bort
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else if (!isLoading && string.IsNullOrWhiteSpace(loadError))
+{
+    <div class="alert alert-light">Inga produkter hittades.</div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string? loadError;
+    private List<ProductDto>? products;
+    private HashSet<int> busyIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            products = await Http.GetFromJsonAsync<List<ProductDto>>("api/product");
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Kunde inte hämta produkter: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task AddToStock(int ProductId)
+    {
+        if (!busyIds.Add(ProductId)) return;
+        loadError = null;
+
+        try
+        {
+            var resp = await Http.PutAsync(
+                $"api/product/{ProductId}/addtostock",
+                content: null);
+            if (!resp.IsSuccessStatusCode)
+            {
+                loadError = $"Kunde inte öka lagret (HTTP {(int)resp.StatusCode}).";
+                return;
+            }
+
+            var product = products?.FirstOrDefault(p => p.ProductId == ProductId);
+            if (product is not null) product.StockStatus += 1;
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Fel vid ökning av lager: {ex.Message}";
+        }
+        finally
+        {
+            busyIds.Remove(ProductId);
+        }
+    }
+
+    private async Task RemoveFromStock(int ProductId)
+    {
+        if (!busyIds.Add(ProductId)) return;
+        loadError = null;
+
+        try
+        {
+            var resp = await Http.PutAsync($"api/product/{ProductId}/removefromstock", content: null);
+            if (!resp.IsSuccessStatusCode)
+            {
+                loadError = $"Kunde inte minska lagret (HTTP {(int)resp.StatusCode}).";
+                return;
+            }
+
+            var product = products?.FirstOrDefault(p => p.ProductId == ProductId);
+            if (product is not null && product.StockStatus > 0)
+                product.StockStatus -= 1;
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Fel vid minskning av lager: {ex.Message}";
+        }
+        finally
+        {
+            busyIds.Remove(ProductId);
+        }
+    }
+
+    private async Task DeleteProduct(int ProductId)
+    {
+        // Tillåt radering endast när lagret är 0
+        var product = products?.FirstOrDefault(p => p.ProductId == ProductId);
+        if (product is null) return;
+
+        var prompt = product.StockStatus > 0
+        ? $"Produkten '{product.Name}' har {product.StockStatus} i lager.\n" +
+          $"Vill du RADERA produkten permanent ändå?"
+        : $"Är du säker på att du vill ta bort '{product.Name}' permanent?";
+
+        var ok = await JS.InvokeAsync<bool>("confirm", prompt);
+        if (!ok) return;
+
+        if (!busyIds.Add(ProductId)) return;
+        loadError = null;
+
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/product/{ProductId}");
+            if (!resp.IsSuccessStatusCode)
+            {
+                loadError = $"Kunde inte ta bort produkten (HTTP {(int)resp.StatusCode}).";
+                return;
+            }
+
+            products!.RemoveAll(p => p.ProductId == ProductId);
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Fel vid radering: {ex.Message}";
+        }
+        finally
+        {
+            busyIds.Remove(ProductId);
+        }
+    }
+}

@@ -93,7 +93,18 @@ namespace Lagerorder1
 
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
-            
+            app.MapGet("/logout", async (SignInManager<ApplicationUser> signInManager) =>
+            {
+                await signInManager.SignOutAsync();
+                // Hoppa till startsidan (lokal path)
+                return Results.Redirect("/"); // medvetet Redirect till en *lokal* path
+            });
+            app.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager) =>
+            {
+                await signInManager.SignOutAsync();
+                return Results.LocalRedirect("/Account/Loggaut"); // hantera ev. gamla POST-formulär också
+            });
+                        
             
 
             // 🔹 Seeding Admin-roll + användare

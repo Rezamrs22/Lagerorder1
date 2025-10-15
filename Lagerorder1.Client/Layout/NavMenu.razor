@@ -1,120 +1,122 @@
-﻿@implements IDisposable
- 
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 @inject NavigationManager NavigationManager
- 
- 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
- 
 
- 
- 
+<nav class="navbar">
+    <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
- 
     <div class="flex-grow-1">
- 
+        <!-- Home -->
         <div class="nav-item px-3" style="margin-top: 50px;">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
- 
-        <div class="nav-item px-3" >
+
+        <!-- Admin -->
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="Account/Admin">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Admin Page
             </NavLink>
         </div>
- 
-        @* <AuthorizeView Roles="Admin">
-            <Authorized>
-                <div class="nav-item px-3 mt-2">
-                    <NavLink class="nav-link d-flex align-items-center gap-2" href="product">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="35" viewBox="0 0 24 24">
-                        <path fill="white"
-                            d="M12 14v8H4a8 8 0 0 1 8-8m0-1c-3.315 0-6-2.685-6-6s2.685-6 6-6s6 2.685 6 6s-2.685 6-6 6m9 4h1v5h-8v-5h1v-1a3 3 0 1 1 6 0zm-2 0v-1a1 1 0 1 0-2 0v1z">
-                        </path>
-                    </svg>
-                    <span>Admin Page</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView> *@
- 
- 
- 
+
+        <!-- Products -->
         <div class="nav-item px-3 mt-3">
             <NavLink class="nav-link d-flex align-items-center gap-2" href="produkt">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 2048 2048">
                     <path fill="currentColor"
-                        d="m960 120l832 416v1040l-832 415l-832-415V536zm625 456L960 264L719 384l621 314zM960 888l238-118l-622-314l-241 120zM256 680v816l640 320v-816zm768 1136l640-320V680l-640 320z">
+                          d="m960 120l832 416v1040l-832 415l-832-415V536zm625 456L960 264L719 384l621 314zM960 888l238-118l-622-314l-241 120zM256 680v816l640 320v-816zm768 1136l640-320V680l-640 320z">
                     </path>
                 </svg>
                 <span>Products</span>
             </NavLink>
         </div>
- 
+
+        <!-- Orders -->
         <div class="nav-item px-3 mt-3">
             <NavLink class="nav-link d-flex align-items-center gap-2" href="Orders">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
                     <path fill="currentColor"
-                        d="M17 18c-1.11 0-2 .89-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2M1 2v2h2l3.6 7.59l-1.36 2.45c-.15.28-.24.61-.24.96a2 2 0 0 0 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25q0-.075.03-.12L8.1 13h7.45c.75 0 1.41-.42 1.75-1.03l3.58-6.47c.07-.16.12-.33.12-.5a1 1 0 0 0-1-1H5.21l-.94-2M7 18c-1.11 0-2 .89-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2">
+                          d="M17 18c-1.11 0-2 .89-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2M1 2v2h2l3.6 7.59l-1.36 2.45c-.15.28-.24.61-.24.96a2 2 0 0 0 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25q0-.075.03-.12L8.1 13h7.45c.75 0 1.41-.42 1.75-1.03l3.58-6.47c.07-.16.12-.33.12-.5a1 1 0 0 0-1-1H5.21l-.94-2M7 18c-1.11 0-2 .89-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2">
                     </path>
                 </svg>
                 <span>Orders</span>
             </NavLink>
         </div>
- 
-        
-    </div>
 
- 
-   <AuthorizeView>
-        <Authorized>
-          
-            <div class="nav-item px-3">
-                <form action="Account/Logout" method="post">
-                    <AntiforgeryToken />
+        <!-- Order Details -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/orderdetails">
+                <span class="bi bi-bag-check-fill nav-menu" aria-hidden="true"></span> Order detaljer
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <!-- Visa endast när användaren är inloggad -->
+                <div class="nav-item px-3">
+                    <!-- Viktigt: <a> (inte NavLink) så vi går till serverns /logout -->
+                    <a class="nav-link" href="/logout">
+                        <span class="bi bi-box-arrow-left nav-menu" aria-hidden="true"></span> Log out
+                    </a>
+                </div>
+            </Authorized>
+
+            <NotAuthorized>
+                <!-- Visa endast när användaren är utloggad -->
+                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Log out
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
                     </NavLink>
-                  @*   <button type="submit" class="nav-link" href="Account/Manage">
-                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logga ut
-                    </button> *@
-                </form>
-            </div>
-        </Authorized>
-        <NotAuthorized>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="Account/Register">
-                    <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="Account/Login">
-                    <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
-                </NavLink>
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
- 
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+
+    </div>
+</nav>
+
+<style>
+    .nav-menu {
+        margin-right: .5rem;
+    }
+
+    .navbar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    button.nav-link {
+        text-decoration: none;
+        color: inherit;
+    }
+</style>
+
 @code {
     private string? currentUrl;
- 
+
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
     }
- 
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
     }
- 
+
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
- 
 

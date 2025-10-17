@@ -18,30 +18,6 @@
 
 <h3>Admin Dashboard</h3>
 
-<h4>Skapa ny roll</h4>
-<input @bind="newRole" placeholder="Rollnamn" />
-<button type="button" class="btn btn-primary" @onclick="CreateRole">Skapa</button>
-
-<h4>Befintliga roller</h4>
-<p>Antal roller: @roles.Count</p>
-<ul>
-    @foreach (var role in roles)
-    {
-        <li>
-            @role
-            <button type="button"
-                    class="btn btn-danger btn-sm ms-2"
-                    @onclick="@(() => ConfirmDeleteRole(role))">
-                Radera
-            </button>
-        </li>
-    }
-</ul>
-
-<h4>Tilldela roll till användare</h4>
-<input @bind="userEmail" placeholder="E-post" />
-<input @bind="assignRole" placeholder="Roll" />
-<button type="button" class="btn btn-success" @onclick="AssignRole">Tilldela</button>
 
 <h4>Användare och deras roller</h4>
 <table class="table">
@@ -59,17 +35,7 @@
                 <td>@user.Email</td>
                 <td>@(user.Roles.Any() ? string.Join(", ", user.Roles) : "user roll")</td>
                 <td>
-                    @if (user.Roles.Any())
-                    {
-                        @foreach (var role in user.Roles)
-                        {
-                            <button type="button"
-                                    class="btn btn-danger btn-sm me-1"
-                                    @onclick="@(() => RemoveRole(user.Email, role))">
-                                Ta bort @role
-                            </button>
-                        }
-                    }
+                   
 
                     <!-- 🔹 Ny knapp för att ta bort användare -->
                     @if (!user.Roles.Contains("Admin") && !user.Roles.Contains("Manager"))

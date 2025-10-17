@@ -22,6 +22,12 @@ namespace Lagerorder1
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, PersistingServerAuthenticationStateProvider>();
+            builder.Services.AddAuthorizationCore(options =>
+            {
+                options.AddPolicy("AdminOnly", policy =>
+                    policy.RequireRole("Admin"));
+            });
+
 
             builder.Services.AddAuthorization();
             builder.Services.AddAuthentication(options =>
@@ -41,6 +47,7 @@ namespace Lagerorder1
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddSignInManager()
                 .AddDefaultTokenProviders();
+            
 
             builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
             builder.Services.AddEndpointsApiExplorer();

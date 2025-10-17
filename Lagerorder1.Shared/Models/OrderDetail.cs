@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using Lagerorder1.Shared.Models;
 
+
 namespace Lagerorder1.Shared.Models
 {
     public class OrderDetail

@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @implements IDisposable
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <nav class="navbar">
     <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
@@ -13,15 +14,39 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Account/Admin">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Admin Page
+       
+      
+       
+        <div class="nav-item px-3 mt-3">
+            <NavLink class="nav-link d-flex align-items-center gap-2 text-white" href="/Account/Admin">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22L12 18.56L5.82 22L7 14.14L2 9.27l6.91-1.01L12 2Z"/>
+                </svg>
+                <span>Admin Sidan</span>
             </NavLink>
         </div>
+          @if (isAdmin)
+            {
+                <div class="nav-item px-3 mt-3">
+                    <NavLink class="nav-link d-flex align-items-center gap-2" href="/changeproduct">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="white">
+                            <path fill="currentColor" d="M21 2H3v20l3-1.5L9 22l3-1.5L15 22l3-1.5L21 22V2m-2 14H5v-2h14v2m0-4H5v-2h14v2m0-4H5V6h14v2Z" />
+                        </svg>
+                        <span>Ändra Produkt</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3 mt-3">
+                    <NavLink class="nav-link d-flex align-items-center gap-2" href="/orderdetails">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="white">
+                            <path fill="currentColor" d="M21 2H3v20l3-1.5L9 22l3-1.5L15 22l3-1.5L21 22V2m-2 14H5v-2h14v2m0-4H5v-2h14v2m0-4H5V6h14v2Z" />
+                        </svg>
+                        <span>Orderdetaljer</span>
+                    </NavLink>
+                </div>
+            }
 
-        <div class="nav-item px-3 mt-3">
+       
+         <div class="nav-item px-3 mt-3">
             <NavLink class="nav-link d-flex align-items-center gap-2" href="produkt">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 2048 2048">
                     <path fill="currentColor"
@@ -40,12 +65,6 @@
                     </path>
                 </svg>
                 <span>Orders</span>
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/orderdetails">
-                <span class="bi bi-bag-check-fill nav-menu" aria-hidden="true"></span> Order detaljer
             </NavLink>
         </div>
 
@@ -72,17 +91,7 @@
                 </div>
             </NotAuthorized>
         </AuthorizeView>
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/changeproduct">
-            <span class="bi bi-box-seam nav-menu" aria-hidden="true"></span> Ändra Produkt
-        </NavLink>
-    </div>
-
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/auth">
-            <span class="bi bi-lock nav-menu" aria-hidden="true"></span> Auth Required
-        </NavLink>
-    </div>
+  
 
 
     </div>
@@ -106,6 +115,17 @@
 </style>
 
 @code {
+    private bool isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Anpassa rollen efter din autentiseringslösning
+        isAdmin = user.IsInRole("Admin");
+    }
+
     private string? currentUrl;
 
     protected override void OnInitialized()

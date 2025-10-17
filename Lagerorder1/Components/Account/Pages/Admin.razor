@@ -4,7 +4,8 @@
 @using Lagerorder1.Data
 @using Microsoft.EntityFrameworkCore
 
-
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject ILogger<Admin> Logger
@@ -131,9 +132,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+    
+        if (!user.Identity?.IsAuthenticated ?? true || !user.IsInRole("Admin"))
+        {
+            Navigation.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+    
         await LoadRoles();
         await LoadUsers();
     }
+
 
    @* private Task LoadRoles()
     {

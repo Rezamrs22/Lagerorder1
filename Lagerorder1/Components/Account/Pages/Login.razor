@@ -74,6 +74,8 @@
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
+
+    
     {
         // Rensa extern cookie för ren inloggning
         if (HttpMethods.IsGet(HttpContext.Request.Method))
@@ -84,6 +86,59 @@
     }
 
     public async Task LoginUser()
+{
+    var result = await SignInManager.PasswordSignInAsync(
+        Input.Email,
+        Input.Password,
+        Input.RememberMe,
+        lockoutOnFailure: true);
+
+    if (result.Succeeded)
+    {
+        Logger.LogInformation("User logged in.");
+
+        var user = await UserManager.FindByEmailAsync(Input.Email);
+
+        if (user != null && await UserManager.IsInRoleAsync(user, "Admin"))
+        {
+            // ✅ Om admin loggar in pga åtkomst till skyddad sida (ReturnUrl finns)
+            if (!string.IsNullOrWhiteSpace(ReturnUrl))
+            {
+                NavigationManager.NavigateTo(ReturnUrl, forceLoad: true);
+            }
+            else
+            {
+                // Annars till Admin-panelen
+                NavigationManager.NavigateTo("/Account/admin", forceLoad: true);
+            }
+        }
+        else
+        {
+            // Vanlig användare → tillbaka till ReturnUrl eller startsidan
+            RedirectManager.RedirectTo(ReturnUrl ?? "/");
+        }
+    }
+    else if (result.RequiresTwoFactor)
+    {
+        RedirectManager.RedirectTo("Account/LoginWith2fa", new()
+        {
+            ["returnUrl"] = ReturnUrl,
+            ["rememberMe"] = Input.RememberMe
+        });
+    }
+    else if (result.IsLockedOut)
+    {
+        Logger.LogWarning("User account locked out.");
+        RedirectManager.RedirectTo("Account/Lockout");
+    }
+    else
+    {
+        errorMessage = "Error: Invalid login attempt.";
+    }
+}
+
+
+    @* public async Task LoginUser()
     {
         var result = await SignInManager.PasswordSignInAsync(
             Input.Email,
@@ -125,7 +180,7 @@
         {
             errorMessage = "Error: Invalid login attempt.";
         }
-    }
+    } *@
 
     private sealed class InputModel
     {

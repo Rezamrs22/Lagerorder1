@@ -117,12 +117,11 @@
 @code {
     private bool isAdmin = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        // Anpassa rollen efter din autentiseringslösning
         isAdmin = user.IsInRole("Admin");
     }
 

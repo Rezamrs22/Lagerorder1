@@ -1,59 +1,148 @@
-﻿<nav class="flex-column">
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
-            <span class="bi bi-house-fill nav-menu" aria-hidden="true"></span> Home
-        </NavLink>
-    </div>
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/orders">
-            <span class="bi bi-bag-check-fill nav-menu" aria-hidden="true"></span> Order
-        </NavLink>
-    </div>
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/orderdetails">
-            <span class="bi bi-bag-check-fill nav-menu" aria-hidden="true"></span> Order detaljer
-        </NavLink>
-    </div>
+<nav class="navbar">
+    <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/produkt">
-            <span class="bi bi-box-seam nav-menu" aria-hidden="true"></span> Produkt
-        </NavLink>
-    </div>
+    <div class="flex-grow-1">
+        <!-- Home -->
+        <div class="nav-item px-3" style="margin-top: 50px;">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+       
+      
+       
+        <div class="nav-item px-3 mt-3">
+            <NavLink class="nav-link d-flex align-items-center gap-2 text-white" href="/Account/Admin">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22L12 18.56L5.82 22L7 14.14L2 9.27l6.91-1.01L12 2Z"/>
+                </svg>
+                <span>Admin Sidan</span>
+            </NavLink>
+        </div>
+          @if (isAdmin)
+            {
+                <div class="nav-item px-3 mt-3">
+                    <NavLink class="nav-link d-flex align-items-center gap-2" href="/changeproduct">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="white">
+                            <path fill="currentColor" d="M21 2H3v20l3-1.5L9 22l3-1.5L15 22l3-1.5L21 22V2m-2 14H5v-2h14v2m0-4H5v-2h14v2m0-4H5V6h14v2Z" />
+                        </svg>
+                        <span>Ändra Produkt</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3 mt-3">
+                    <NavLink class="nav-link d-flex align-items-center gap-2" href="/orderdetails">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="white">
+                            <path fill="currentColor" d="M21 2H3v20l3-1.5L9 22l3-1.5L15 22l3-1.5L21 22V2m-2 14H5v-2h14v2m0-4H5v-2h14v2m0-4H5V6h14v2Z" />
+                        </svg>
+                        <span>Orderdetaljer</span>
+                    </NavLink>
+                </div>
+            }
 
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/changeproduct">
-            <span class="bi bi-box-seam nav-menu" aria-hidden="true"></span> Ändra Produkt
-        </NavLink>
-    </div>
+       
+         <div class="nav-item px-3 mt-3">
+            <NavLink class="nav-link d-flex align-items-center gap-2" href="produkt">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 2048 2048">
+                    <path fill="currentColor"
+                          d="m960 120l832 416v1040l-832 415l-832-415V536zm625 456L960 264L719 384l621 314zM960 888l238-118l-622-314l-241 120zM256 680v816l640 320v-816zm768 1136l640-320V680l-640 320z">
+                    </path>
+                </svg>
+                <span>Products</span>
+            </NavLink>
+        </div>
 
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/auth">
-            <span class="bi bi-lock nav-menu" aria-hidden="true"></span> Auth Required
-        </NavLink>
-    </div>
+        <div class="nav-item px-3 mt-3">
+            <NavLink class="nav-link d-flex align-items-center gap-2" href="Orders">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                          d="M17 18c-1.11 0-2 .89-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2M1 2v2h2l3.6 7.59l-1.36 2.45c-.15.28-.24.61-.24.96a2 2 0 0 0 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25q0-.075.03-.12L8.1 13h7.45c.75 0 1.41-.42 1.75-1.03l3.58-6.47c.07-.16.12-.33.12-.5a1 1 0 0 0-1-1H5.21l-.94-2M7 18c-1.11 0-2 .89-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2">
+                    </path>
+                </svg>
+                <span>Orders</span>
+            </NavLink>
+        </div>
 
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/register">
-            <span class="bi bi-person-plus-fill nav-menu" aria-hidden="true"></span> Register
-        </NavLink>
-    </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <!-- Viktigt: <a> (inte NavLink) så vi går till serverns /logout -->
+                    <a class="nav-link" href="/logout">
+                        <span class="bi bi-box-arrow-left nav-menu" aria-hidden="true"></span> Log out
+                    </a>
+                </div>
+            </Authorized>
 
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="/login">
-            <span class="bi bi-box-arrow-in-right nav-menu" aria-hidden="true"></span> Login
-        </NavLink>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+  
+
+
     </div>
 </nav>
 
 <style>
     .nav-menu {
-        margin-right: .5rem
+        margin-right: .5rem;
     }
 
-    .nav-link.active {
-        font-weight: 600
+    .navbar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    button.nav-link {
+        text-decoration: none;
+        color: inherit;
     }
 </style>
+
+@code {
+    private bool isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Anpassa rollen efter din autentiseringslösning
+        isAdmin = user.IsInRole("Admin");
+    }
+
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
 

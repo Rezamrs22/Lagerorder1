@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Lagerorder1.Shared.Models;
 namespace Lagerorder1.Data
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
+    public class ApplicationDbContext:IdentityDbContext<ApplicationUser, IdentityRole, string>
     {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        {
+        }
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>(); 
         public DbSet<Size> Sizes => Set<Size>();

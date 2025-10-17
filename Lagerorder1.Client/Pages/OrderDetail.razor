@@ -1,11 +1,22 @@
 @page "/orderdetails"
 @using System.Net.Http.Json
 @using Lagerorder1.Shared.DTOs
+@using Microsoft.AspNetCore.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject HttpClient Http
 
-<h3>Orderdetaljer</h3>
 
+<h3>Orderdetaljer</h3>
+@if(!isAuthorized)
+{
+    <div class="alert alert-warning">Du måste vara inloggad som administratör för att se denna sida.</div>
+}
+else
+{
+    <p>Här kan du se alla ordrar som lagts i systemet. Klicka på "Mer…" för att se detaljer.</p>
+}
 @if (isLoading)
 {
     <div class="alert alert-info">Laddar ordrar…</div>
@@ -132,9 +143,24 @@ else
     bool isLoading = true;
     string? loadError;
 
+    bool isAuthorized = false;  
+
     // --------- LIFECYCLE ---------
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true || !user.IsInRole("Admin"))
+        {
+            // Inte inloggad — skicka till inloggning
+            Navigation.NavigateTo("/Account/AccessDenied", forceLoad: true);
+            return;
+        }
+         
+
+        isAuthorized = true;
+
         await LoadOrdersAsync();     // laddar hela listan inkl. OrderDetails
         await EnsureProductsAsync(); // för storleksnamn
         await EnsureSizesAsync();    // för fallback via SizeId

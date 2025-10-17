@@ -1,11 +1,11 @@
 ﻿@page "/Account/Login"
-
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using Lagerorder1.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
@@ -19,7 +19,7 @@
             <StatusMessage Message="@errorMessage" />
             <EditForm Model="Input" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <h2>login to .</h2>
+                <h2>Login to Lagerorder1</h2>
                 <hr />
                 <ValidationSummary class="text-danger" role="alert" />
                 <div class="form-floating mb-3">
@@ -74,26 +74,102 @@
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
+
+    
     {
-        // varför: rensa extern cookie för ren inloggning
+        // Rensa extern cookie för ren inloggning
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            
+
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
+{
+    var result = await SignInManager.PasswordSignInAsync(
+        Input.Email,
+        Input.Password,
+        Input.RememberMe,
+        lockoutOnFailure: true);
+
+    if (result.Succeeded)
     {
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+        Logger.LogInformation("User logged in.");
+
+        var user = await UserManager.FindByEmailAsync(Input.Email);
+
+        if (user != null && await UserManager.IsInRoleAsync(user, "Admin"))
+        {
+            // ✅ Om admin loggar in pga åtkomst till skyddad sida (ReturnUrl finns)
+            if (!string.IsNullOrWhiteSpace(ReturnUrl))
+            {
+                NavigationManager.NavigateTo(ReturnUrl, forceLoad: true);
+            }
+            else
+            {
+                // Annars till Admin-panelen
+                NavigationManager.NavigateTo("/Account/admin", forceLoad: true);
+            }
+        }
+        else
+        {
+            // Vanlig användare → tillbaka till ReturnUrl eller startsidan
+            RedirectManager.RedirectTo(ReturnUrl ?? "/");
+        }
+    }
+    else if (result.RequiresTwoFactor)
+    {
+        RedirectManager.RedirectTo("Account/LoginWith2fa", new()
+        {
+            ["returnUrl"] = ReturnUrl,
+            ["rememberMe"] = Input.RememberMe
+        });
+    }
+    else if (result.IsLockedOut)
+    {
+        Logger.LogWarning("User account locked out.");
+        RedirectManager.RedirectTo("Account/Lockout");
+    }
+    else
+    {
+        errorMessage = "Error: Invalid login attempt.";
+    }
+}
+
+
+    @* public async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email,
+            Input.Password,
+            Input.RememberMe,
+            lockoutOnFailure: true);
+
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+
+            if (user != null && await UserManager.IsInRoleAsync(user, "Admin"))
+            {
+                // ✅ Admin → alltid till admin-dashboard
+                NavigationManager.NavigateTo("/Account/admin", forceLoad: true);
+            }
+            else
+            {
+                // Vanlig användare → tillbaka till returnUrl eller startsidan
+                RedirectManager.RedirectTo(ReturnUrl ?? "/");
+            }
         }
         else if (result.RequiresTwoFactor)
         {
-            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new()
+            {
+                ["returnUrl"] = ReturnUrl,
+                ["rememberMe"] = Input.RememberMe
+            });
         }
         else if (result.IsLockedOut)
         {
@@ -104,7 +180,7 @@
         {
             errorMessage = "Error: Invalid login attempt.";
         }
-    }
+    } *@
 
     private sealed class InputModel
     {
@@ -118,3 +194,4 @@
         public bool RememberMe { get; set; }
     }
 }
+
